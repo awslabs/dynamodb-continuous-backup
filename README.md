@@ -156,15 +156,13 @@ add jar s3://mybucket/prefix/json-serde-1.3.8-SNAPSHOT-jar-with-dependencies.jar
 We'll now create a Hive Table on top of our backup location, which uses this SerDe to read the JSON and let us query fine grained details. This table will be read-only on our backup data, and you can drop it at any time:
 
 ```
-create external table MyTable_<YYYY><MM><DD>_<HH>
-(
-Keys map<string,map<string,string>>,
-NewImage map<string,map<string,string>>,
-OldImage map<string,map<string,string>>,
-SequenceNumber string,
-SizeBytes bigint,
-eventName string
-)
+create external table MyTable_<YYYY><MM><DD>_<HH>(
+	Keys map<string,map<string,string>>,
+	NewImage map<string,map<string,string>>,
+	OldImage map<string,map<string,string>>,
+	SequenceNumber string,
+	SizeBytes bigint,
+	eventName string)
 ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe'
 location 's3://backup-bucket/backup-prefix/MyTable/<YYYY>/<MM>/<DD>/<HH>';
 ```
