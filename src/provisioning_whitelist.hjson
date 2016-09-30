@@ -1,0 +1,9 @@
+{
+  "provisionAll": false,
+  "tableNames": [
+    "Table1",
+    "Table2",
+    // however many tables you want to opt-in to the bulk operation
+    "TableN"
+  ]
+}

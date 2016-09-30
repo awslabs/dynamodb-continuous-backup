@@ -1,0 +1,29 @@
+{
+	// target region - for example 'us-east-1' or 'eu-west-1'
+	"region" : "eu-west-1",
+	
+	// name of the CloudTrail to use as the data source for DynamoDB Replication
+	"cloudTrailName" : "account-log",
+	
+	// IAM Role ARN which CloudTrail will use to write to S3 and CloudWatch Logs
+	"cloudTrailRoleArn" : "arn:aws:iam::<my account number>:role/CloudTrail_CloudWatchLogs_Role",
+	
+	// firehose destination information
+	"firehoseDeliveryBucket" : "my-backup-bucket",
+	"firehoseDeliveryPrefix" : "dynamodb/backup",
+	
+	// the ARN of the IAM role that Kinesis Firehose will use to write to S3
+	"firehoseDeliveryRoleArn" : "arn:aws:iam::<my account number>:role/firehose_delivery_role",
+	
+	// size in MB of dynamo DB backup files to write to S3
+	"firehoseDeliverySizeMB" : 128,
+	
+	// output interval in seconds for backup files
+	"firehoseDeliveryIntervalSeconds" : 60,
+	
+	// IAM Role ARN for which AWS Lambda uses to write to Kinesis Firehose
+	"lambdaExecRoleArn" : "arn:aws:iam::<my account number>:role/LambdaExecRole",
+	
+	# number of update records to stream to the continuous backup function at one time. This number times your DDB record size must be < 128K
+	"streamsMaxRecordsBatch" : 1000
+}
