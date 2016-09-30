@@ -21,6 +21,18 @@ By using this module, you can ensure that any Amazon DynamoDB Table that is crea
 
 When you delete DynamoDB Tables, this automation also ensures that the Kinesis Firehose Delivery Stream is deleted, but the backup data on Amazon S3 is retained.
 
+# How much will it cost?
+
+This solution adds AWS service components to achieve continuous backup of your DynamoDB data. The additional cost will be made up of the following (depending on region prices may vary slightly):
+
+* Adding an update stream to the DynamoDB table. This costs $.02/100,000 reads after the first 2.5M reads per update stream
+* Adding a Kinesis Firehose Delivery Stream per table. This costs $.035/GB ingested to the delivery stream
+* Backup data storage on S3. This costs the customer ~ $.03/GB
+* CloudTrail forwarding to CloudWatch Logs. This costs $.50/GB but as we only forward CreateTable and DeleteTable events, the cost should be minimal
+* AWS Lambda invocations to forward DynamoDB Update Stream data to Kinesis Firehose. This costs $.20/million invocations, after the first million.
+
+We believe that these costs are relatively low, but you should assess the cost implications to running this solution in your account, especially on tables with a very large number of write IOPS.
+
 # Getting Started
 
 ## Configure Amazon CloudTrail
