@@ -15,6 +15,8 @@ This module gives you the ability to configure continuous, streaming backup of a
 * Deploy AWS Lambda Streams to Firehose as a Lambda function in the account
 * Route the Table's ```NEW_AND_OLD_IMAGES``` update stream entries to the LambdaStreamToFirehose function
 
+&nbsp;
+
 ![Architecture](Architecture.png)
 
 By using this module, you can ensure that any Amazon DynamoDB Table that is created, whether as part of an application rollout, or just by a developer as they are doing development, has continuous incremental backups enabled. Once this module deployed, there are no ongoing operations needed to create these backups on S3.
@@ -31,7 +33,9 @@ This solution adds AWS service components to achieve continuous backup of your D
 * CloudTrail forwarding to CloudWatch Logs. This costs $.50/GB, but as we only forward CreateTable and DeleteTable events, the cost should be minimal
 * AWS Lambda invocations to forward DynamoDB Update Stream data to Kinesis Firehose. This costs $.20/1 million invocations, after the first 1 million.
 
-We've provided a [simple cost calculator](cost-calculator.xlsx) that will help you _estimate_ how much this solution will cost. You just need to indicate how many Items are created/modified per day, and the size of those updates. For example, 10M DynamoDB Item inserts/updates per day, at 1KB per Item, would cost approximately $160 for backup/month. In addition to using this simple calculator, you should review the cost implications of running this solution in your account, especially on tables with a very large number of write IOPS.
+We've provided a [simple cost calculator](cost-calculator.xlsx) that will help you _estimate_ how much this solution will cost. You just need to indicate how many Items are created/modified per day, and the size of those updates. For example, 10M DynamoDB Item inserts/updates per day, at 1KB per Item, might cost approximately $160 for backup/month. Your charges may be somewhat lower if you have INSERT heavy workloads, as they do not contain an `OLD_IMAGE` entry in the update stream.
+
+In addition to using this simple calculator, you should review the cost implications of running this solution in your account, especially on tables with a very large number of write IOPS.
 
 # Backup Data on S3
 
@@ -103,7 +107,7 @@ Once deployed, you can verify the correct operation of this function by:
 
 * Ensuring that the provided CloudTrail is forwarding events to Amazon CloudWatch Logs
 * This CloudWatch Logs Stream is the trigger for the ```EnsureDynamoBackup``` Lambda function
-* Create a simple test DynamoDB table, and observe the CloudWatch Logs output from ```EnsureDynamoBackup``` indicating that it has provisioned the continuous backup. For example:
+* Create a simple test DynamoDB table, and observe the CloudWatch Logs output from ```EnsureDynamoBackup``` Lambda Function, indicating that it has provisioned the continuous backup. For example:
 
 ```
 aws dynamodb create-table --region eu-west-1 --attribute-definitions AttributeName=MyHashKey,AttributeType=S --key-schema AttributeName=MyHashKey,KeyType=HASH --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 --table-name MyTestTable
