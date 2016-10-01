@@ -27,11 +27,11 @@ This solution adds AWS service components to achieve continuous backup of your D
 
 * Adding an update stream to the DynamoDB table. This costs $.02/100,000 reads after the first 2.5M reads per update stream
 * Adding a Kinesis Firehose Delivery Stream per table. This costs $.035/GB ingested to the delivery stream
-* Backup data storage on S3. This costs the customer ~ $.03/GB
-* CloudTrail forwarding to CloudWatch Logs. This costs $.50/GB but as we only forward CreateTable and DeleteTable events, the cost should be minimal
-* AWS Lambda invocations to forward DynamoDB Update Stream data to Kinesis Firehose. This costs $.20/million invocations, after the first million.
+* Backup data storage on S3. This costs ~ $.03/GB depending on region
+* CloudTrail forwarding to CloudWatch Logs. This costs $.50/GB, but as we only forward CreateTable and DeleteTable events, the cost should be minimal
+* AWS Lambda invocations to forward DynamoDB Update Stream data to Kinesis Firehose. This costs $.20/1 million invocations, after the first 1 million.
 
-We believe that these costs are relatively low, but you should assess the cost implications to running this solution in your account, especially on tables with a very large number of write IOPS.
+We've provided a [simple cost calculator](cost-calculator.xlsx) that will help you _estimate_ how much this solution will cost. You just need to indicate how many Items are created/modified per day, and the size of those updates. For example, 10M DynamoDB Item inserts/updates per day, at 1KB per Item, would cost approximately $142 for backup/month. In addition to using this simple calculator, you should review the cost implications of running this solution in your account, especially on tables with a very large number of write IOPS.
 
 # Getting Started
 
