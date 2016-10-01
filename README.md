@@ -31,7 +31,20 @@ This solution adds AWS service components to achieve continuous backup of your D
 * CloudTrail forwarding to CloudWatch Logs. This costs $.50/GB, but as we only forward CreateTable and DeleteTable events, the cost should be minimal
 * AWS Lambda invocations to forward DynamoDB Update Stream data to Kinesis Firehose. This costs $.20/1 million invocations, after the first 1 million.
 
-We've provided a [simple cost calculator](cost-calculator.xlsx) that will help you _estimate_ how much this solution will cost. You just need to indicate how many Items are created/modified per day, and the size of those updates. For example, 10M DynamoDB Item inserts/updates per day, at 1KB per Item, would cost approximately $142 for backup/month. In addition to using this simple calculator, you should review the cost implications of running this solution in your account, especially on tables with a very large number of write IOPS.
+We've provided a [simple cost calculator](cost-calculator.xlsx) that will help you _estimate_ how much this solution will cost. You just need to indicate how many Items are created/modified per day, and the size of those updates. For example, 10M DynamoDB Item inserts/updates per day, at 1KB per Item, would cost approximately $160 for backup/month. In addition to using this simple calculator, you should review the cost implications of running this solution in your account, especially on tables with a very large number of write IOPS.
+
+# Backup Data on S3
+
+Data is backed up automatically via Amazon Kinesis Firehose. The Firehose Delivery Stream that is created as part of provisioning will have the same name as the DynamoDB table you create. The output path of the Firehose Delivery Stream will be the configured bucket and prefix, plus the table name, and then the date is added to the S3 prefix in format ```YYYY/MM/DD/HH```. An example backup file for a variety of options would look like:
+
+```
+{"Keys":{"MyHashKey":{"S":"abc"}},"NewImage":{"123":{"S":"asdfasdf"},"MyHashKey":{"S":"abc"}},"OldImage":{"123":{"S":"0921438-09"},"MyHashKey":{"S":"abc"}},"SequenceNumber":"19700000000011945700385","SizeBytes":45,"eventName":"MODIFY"}
+{"Keys":{"MyHashKey":{"S":"abc"}},"NewImage":{"123":{"S":"asdfasq223qdf"},"MyHashKey":{"S":"abc"}},"OldImage":{"123":{"S":"asdfasdf"},"MyHashKey":{"S":"abc"}},"SequenceNumber":"19800000000011945703002","SizeBytes":48,"eventName":"MODIFY"}
+```
+
+Every change made to the DynamoDB Item is stored in Amazon S3, using the Date that the Item was forwarded to Kinesis Firehose from the UpdateStream. You may observe a propagation delay of a few seconds between the DynamoDB Item update/insert/delete time, and the forwarding of the event to Kinesis Firehose. Firehose will then buffer data for the configured ```firehoseDeliveryIntervalSeconds```.
+
+Please note that you _may_ find duplicate entries in your backup files, as we implement _at least once delivery semantics_ for delivery of data from the DynamoDB Update Stream to AWS Lambda, and then within the Kinesis Firehose delivery stream. When performing a restore, you may need to deduplicate on the basis of the Table's Partition & Sort key.
 
 # Getting Started
 
@@ -140,17 +153,6 @@ You can use the `deprovision_tables.py` script in exactly the same way to tear d
 # Limits
 
 Please note that default Account limits are for 20 Kinesis Firehose Delivery Streams, and this module will create one Firehose Delivery Stream per Table. If you require more, please file a [Limit Increase Request](https://aws.amazon.com/support/createCase?serviceLimitIncreaseType=kinesis-firehose-limits&type=service_limit_increase).
-
-# Backup Data on S3
-
-Data is backed up automatically via Amazon Kinesis Firehose. The Firehose Delivery Stream that is created as part of provisioning will have the same name as the DynamoDB table you create. The output path of the Firehose Delivery Stream will be the configured bucket and prefix, plus the table name, and then the date in format ```YYYY/MM/DD/HH```. An example backup file for a variety of options would look like:
-
-```
-{"Keys":{"MyHashKey":{"S":"abc"}},"NewImage":{"123":{"S":"asdfasdf"},"MyHashKey":{"S":"abc"}},"OldImage":{"123":{"S":"0921438-09"},"MyHashKey":{"S":"abc"}},"SequenceNumber":"19700000000011945700385","SizeBytes":45,"eventName":"MODIFY"}
-{"Keys":{"MyHashKey":{"S":"abc"}},"NewImage":{"123":{"S":"asdfasq223qdf"},"MyHashKey":{"S":"abc"}},"OldImage":{"123":{"S":"asdfasdf"},"MyHashKey":{"S":"abc"}},"SequenceNumber":"19800000000011945703002","SizeBytes":48,"eventName":"MODIFY"}
-```
-
-Every change made to the DynamoDB Item is stored sequentially in Amazon S3, using the Date that the Item was forwarded to Kinesis Firehose from the UpdateStream. You may expect a propagation delay of a few seconds between the DynamoDB Item update/insert/delete time, and the forwarding of the event to Kinesis Firehose. Firehose will then buffer data for the configured ```firehoseDeliveryIntervalSeconds```.
 
 
 # Performing a Restore
