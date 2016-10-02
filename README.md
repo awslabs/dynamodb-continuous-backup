@@ -225,7 +225,7 @@ IAM Role ARN which CloudTrail will use to write to Amazon S3 and CloudWatch Logs
                 "logs:CreateLogStream"
             ],
             "Resource": [
-                "arn:aws:logs:eu-west-1:887210671223:log-group:CloudTrail/*:log-stream:887210671223_CloudTrail_eu-west-1*"
+                "arn:aws:logs:eu-west-1:<my account number>:log-group:CloudTrail/*:log-stream:<my account number>_CloudTrail_eu-west-1*"
             ]
         },
         {
@@ -235,7 +235,7 @@ IAM Role ARN which CloudTrail will use to write to Amazon S3 and CloudWatch Logs
                 "logs:PutLogEvents"
             ],
             "Resource": [
-                "arn:aws:logs:eu-west-1:887210671223:log-group:CloudTrail/*:log-stream:887210671223_CloudTrail_eu-west-1*"
+                "arn:aws:logs:eu-west-1:<my account number>:log-group:CloudTrail/*:log-stream:<my account number>_CloudTrail_eu-west-1*"
             ]
         }
     ]
