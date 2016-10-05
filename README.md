@@ -15,6 +15,8 @@ This module gives you the ability to configure continuous, streaming backup of a
 * Deploy AWS Lambda Streams to Firehose as a Lambda function in the account
 * Route the Table's `NEW_AND_OLD_IMAGES` update stream entries to the LambdaStreamToFirehose function
 
+&nbsp;
+
 ![Architecture](Architecture.png)
 
 By using this module, you can ensure that any Amazon DynamoDB Table that is created, whether as part of an application rollout, or just by a developer as they are doing development, has continuous incremental backups enabled. Once this module deployed, there are no ongoing operations needed to create these backups on S3.
@@ -27,11 +29,26 @@ This solution adds AWS service components to achieve continuous backup of your D
 
 * Adding an update stream to the DynamoDB table. This costs $.02/100,000 reads after the first 2.5M reads per update stream
 * Adding a Kinesis Firehose Delivery Stream per table. This costs $.035/GB ingested to the delivery stream
-* Backup data storage on S3. This costs the customer ~ $.03/GB
-* CloudTrail forwarding to CloudWatch Logs. This costs $.50/GB but as we only forward CreateTable and DeleteTable events, the cost should be minimal
-* AWS Lambda invocations to forward DynamoDB Update Stream data to Kinesis Firehose. This costs $.20/million invocations, after the first million.
+* Backup data storage on S3. This costs ~ $.03/GB depending on region
+* CloudTrail forwarding to CloudWatch Logs. This costs $.50/GB, but as we only forward CreateTable and DeleteTable events, the cost should be minimal
+* AWS Lambda invocations to forward DynamoDB Update Stream data to Kinesis Firehose. This costs $.20/1 million invocations, after the first 1 million.
 
-We believe that these costs are relatively low, but you should assess the cost implications to running this solution in your account, especially on tables with a very large number of write IOPS.
+We've provided a [simple cost calculator](cost-calculator.xlsx) that will help you _estimate_ how much this solution will cost. You just need to indicate how many Items are created/modified per day, and the size of those updates. For example, 10M DynamoDB Item inserts/updates per day, at 1KB per Item, might cost approximately $160 for backup/month. Your charges may be somewhat lower if you have INSERT heavy workloads, as they do not contain an `OLD_IMAGE` entry in the update stream.
+
+In addition to using this simple calculator, you should review the cost implications of running this solution in your account, especially on tables with a very large number of write IOPS.
+
+# Backup Data on S3
+
+Data is backed up automatically via Amazon Kinesis Firehose. The Firehose Delivery Stream that is created as part of provisioning will have the same name as the DynamoDB table you create. The output path of the Firehose Delivery Stream will be the configured bucket and prefix, plus the table name, and then the date is added to the S3 prefix in format ```YYYY/MM/DD/HH```. An example backup file for a variety of options would look like:
+
+```
+{"Keys":{"MyHashKey":{"S":"abc"}},"NewImage":{"123":{"S":"asdfasdf"},"MyHashKey":{"S":"abc"}},"OldImage":{"123":{"S":"0921438-09"},"MyHashKey":{"S":"abc"}},"SequenceNumber":"19700000000011945700385","SizeBytes":45,"eventName":"MODIFY"}
+{"Keys":{"MyHashKey":{"S":"abc"}},"NewImage":{"123":{"S":"asdfasq223qdf"},"MyHashKey":{"S":"abc"}},"OldImage":{"123":{"S":"asdfasdf"},"MyHashKey":{"S":"abc"}},"SequenceNumber":"19800000000011945703002","SizeBytes":48,"eventName":"MODIFY"}
+```
+
+Every change made to the DynamoDB Item is stored in Amazon S3, using the Date that the Item was forwarded to Kinesis Firehose from the UpdateStream. You may observe a propagation delay of a few seconds between the DynamoDB Item update/insert/delete time, and the forwarding of the event to Kinesis Firehose. Firehose will then buffer data for the configured ```firehoseDeliveryIntervalSeconds```.
+
+Please note that you _may_ find duplicate entries in your backup files, as we implement _at least once delivery semantics_ for delivery of data from the DynamoDB Update Stream to AWS Lambda, and then within the Kinesis Firehose delivery stream. When performing a restore, you may need to deduplicate on the basis of the Table's Partition & Sort key.
 
 # Getting Started
 
@@ -90,9 +107,8 @@ We will:
 Once deployed, you can verify the correct operation of this function by:
 
 * Ensuring that the provided CloudTrail is forwarding events to Amazon CloudWatch Logs
-* This CloudWatch Logs Stream is the trigger for the `EnsureDynamoBackup` Lambda function
-* Create a simple test DynamoDB table, and observe the CloudWatch Logs output from `EnsureDynamoBackup` indicating that it has provisioned the continuous backup. For example:
-
+* This CloudWatch Logs Stream is the trigger for the ```EnsureDynamoBackup``` Lambda function
+* Create a simple test DynamoDB table, and observe the CloudWatch Logs output from ```EnsureDynamoBackup``` Lambda Function, indicating that it has provisioned the continuous backup. For example:
 `
 aws dynamodb create-table --region eu-west-1 --attribute-definitions AttributeName=MyHashKey,AttributeType=S --key-schema AttributeName=MyHashKey,KeyType=HASH --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 --table-name MyTestTable
 `
@@ -168,7 +184,6 @@ def my_filter_function(dynamo_table_name):
 optin_function = my_filter_function
 ```
 
-
 # Performing a Restore
 
 ## Determining which data needs to be restored
@@ -235,7 +250,7 @@ IAM Role ARN which CloudTrail will use to write to Amazon S3 and CloudWatch Logs
                 "logs:CreateLogStream"
             ],
             "Resource": [
-                "arn:aws:logs:eu-west-1:887210671223:log-group:CloudTrail/*:log-stream:887210671223_CloudTrail_eu-west-1*"
+                "arn:aws:logs:eu-west-1:<my account number>:log-group:CloudTrail/*:log-stream:<my account number>_CloudTrail_eu-west-1*"
             ]
         },
         {
@@ -245,7 +260,7 @@ IAM Role ARN which CloudTrail will use to write to Amazon S3 and CloudWatch Logs
                 "logs:PutLogEvents"
             ],
             "Resource": [
-                "arn:aws:logs:eu-west-1:887210671223:log-group:CloudTrail/*:log-stream:887210671223_CloudTrail_eu-west-1*"
+                "arn:aws:logs:eu-west-1:<my account number>:log-group:CloudTrail/*:log-stream:<my account number>_CloudTrail_eu-west-1*"
             ]
         }
     ]
