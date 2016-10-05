@@ -24,6 +24,9 @@
 	// IAM Role ARN for which AWS Lambda uses to write to Kinesis Firehose
 	"lambdaExecRoleArn" : "arn:aws:iam::<my account number>:role/LambdaExecRole",
 	
-	# number of update records to stream to the continuous backup function at one time. This number times your DDB record size must be < 128K
-	"streamsMaxRecordsBatch" : 1000
+	// number of update records to stream to the continuous backup function at one time. This number times your DDB record size must be < 128K
+	"streamsMaxRecordsBatch" : 1000,
+	
+	// regular expression to run against incoming CreateTable events, to implement filtering of which tables are configured
+	"tableNameMatchRegex": ".*"
 }

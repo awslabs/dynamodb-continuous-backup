@@ -17,8 +17,40 @@ import boto3
 import botocore
 import time
 import hjson
+import re
 
 config = None
+regex_pattern = None
+
+'''
+Function that checks if a table should be opted into backups based on a regular expression provided
+in the configuration file
+'''
+def table_regex_optin(dynamo_table_name):
+    try:
+        if "tableNameMatchRegex" in config:
+            global regex_pattern
+            if regex_pattern == None:
+                regex_pattern = re.compile(config['tableNameMatchRegex'])
+                
+            # check the regular expression match
+            if regex_pattern.match(dynamo_table_name):
+                return True
+            else:
+                return False
+        else:
+            # no regular expression matching in the configuration
+            return True
+    except:
+        return True
+
+'''
+Function reference for how to check whether tables should be backed up - change this
+to the specific implementation that you've provided
+
+Spec: boolean = f(string)
+'''
+optin_function = table_regex_optin
 
 # constants - don't change these!
 REGION_KEY = 'AWS_REGION'
@@ -257,22 +289,26 @@ def remove_stream_trigger(dynamo_table_name):
 
     if not removed_stream_trigger:
         print "No DynamoDB Update Stream Triggers found routing to %s for %s - OK" % (LAMBDA_STREAMS_TO_FIREHOSE, dynamo_table_name)
-        
-        
+    
 '''
 Provision a single table for DynamoDB backup
 '''
 def configure_table(dynamo_table_name):
-    # ensure that the table has an update stream                
-    dynamo_stream_arn = ensure_stream(dynamo_table_name)
-    print "Resolved DynamoDB Stream ARN: %s" % (dynamo_stream_arn)
-
-    # now ensure that we have a firehose delivery stream that will route to the backup location
-    delivery_stream_arn = ensure_firehose_delivery_stream(dynamo_table_name)
-    print "Resolved Firehose Delivery Stream ARN: %s" % (delivery_stream_arn)
-
-    # wire the dynamo update stream to the deployed instance of lambda-streams-to-firehose
-    ensure_update_stream_event_source(dynamo_stream_arn)
+    proceed = optin_function(dynamo_table_name)
+    
+    # ensure that the table has an update stream
+    if proceed:                
+        dynamo_stream_arn = ensure_stream(dynamo_table_name)
+        print "Resolved DynamoDB Stream ARN: %s" % (dynamo_stream_arn)
+    
+        # now ensure that we have a firehose delivery stream that will route to the backup location
+        delivery_stream_arn = ensure_firehose_delivery_stream(dynamo_table_name)
+        print "Resolved Firehose Delivery Stream ARN: %s" % (delivery_stream_arn)
+    
+        # wire the dynamo update stream to the deployed instance of lambda-streams-to-firehose
+        ensure_update_stream_event_source(dynamo_stream_arn)
+    else:
+        print "Not configuring continuous backup for %s as it has been suppressed by the configured Opt-In function" % (dynamo_table_name)
 
 
 '''

@@ -13,7 +13,7 @@ This module gives you the ability to configure continuous, streaming backup of a
 * Configuring [DynamoDB Update Streams](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.html) for the Table that's just been created
 * Creating an [Amazon Kinesis Firehose Delivery Stream](http://docs.aws.amazon.com/firehose/latest/dev/basic-create.html) for the required destination of the backups on Amazon S3
 * Deploy AWS Lambda Streams to Firehose as a Lambda function in the account
-* Route the Table's ```NEW_AND_OLD_IMAGES``` update stream entries to the LambdaStreamToFirehose function
+* Route the Table's `NEW_AND_OLD_IMAGES` update stream entries to the LambdaStreamToFirehose function
 
 ![Architecture](Architecture.png)
 
@@ -43,16 +43,17 @@ Amazon CloudTrail is a service that provides logging of all API activity in an a
 
 To get started with this function, simply clone the project, and then create a configuration file. This module uses [hjson](https://hjson.org) to make the configuration easy to maintain and read over time, and there's an example file in [config.hjson](src/config.hjson). You may need to work with your AWS Administrator to setup some of the IAM Roles with the correct permissions. You will only need one configuration for **all** tables in your account, and the following items must be configured:
 
-* ```region``` - the AWS Region where you want the function deployed
-* ```cloudTrailName``` - the name of the CloudTrail to use for API events. This CloudTrail should only include DynamoDB events for the ```region``` specified
-* ```cloudTrailRoleArn``` - IAM Role ARN which CloudTrail will use to write to S3 and CloudWatch Logs
-* ```firehoseDeliveryBucket``` - The S3 bucket where DynamoDB backup data should be stored
-* ```firehoseDeliveryPrefix``` - The prefix on S3 where DynamoDB backup data should be stored. The table name will be added automatically to this prefix, as will the date and time of the backup file
-* ```firehoseDeliveryRoleArn``` - the ARN of the IAM role that Kinesis Firehose will use to write to S3
-* ```firehoseDeliverySizeMB``` - size in MB of dynamo DB backup files to write to S3
-* ```firehoseDeliveryIntervalSeconds``` - output interval in seconds for backup files (minimum of 60)
-* ```lambdaExecRoleArn``` - IAM Role ARN for which AWS Lambda uses to write to Kinesis Firehose
-* ```streamsMaxRecordsBatch``` - Number of update records to stream to the continuous backup function at one time. This number times your DDB record size must be < 128K
+* `region` - the AWS Region where you want the function deployed
+* `cloudTrailName` - the name of the CloudTrail to use for API events. This CloudTrail should only include DynamoDB events for the `region` specified
+* `cloudTrailRoleArn` - IAM Role ARN which CloudTrail will use to write to S3 and CloudWatch Logs
+* `firehoseDeliveryBucket` - The S3 bucket where DynamoDB backup data should be stored
+* `firehoseDeliveryPrefix` - The prefix on S3 where DynamoDB backup data should be stored. The table name will be added automatically to this prefix, as will the date and time of the backup file
+* `firehoseDeliveryRoleArn` - the ARN of the IAM role that Kinesis Firehose will use to write to S3
+* `firehoseDeliverySizeMB` - size in MB of dynamo DB backup files to write to S3
+* `firehoseDeliveryIntervalSeconds` - output interval in seconds for backup files (minimum of 60)
+* `lambdaExecRoleArn` - IAM Role ARN for which AWS Lambda uses to write to Kinesis Firehose
+* `streamsMaxRecordsBatch` - Number of update records to stream to the continuous backup function at one time. This number times your DDB record size must be < 128K
+* `tableNameMatchRegex` - Regular expression that is used to control which tables are provisioned for continuous backup. If omitted or invalid then it will not be used
 
 An appendix with the structure of the required IAM role permissions is at the end of this document.
 
@@ -64,18 +65,18 @@ In order to deploy this function into your AWS Account, you must first build the
 
 We now need to build the Lambda function so we can deploy it to your account. This means we need to add the configuration file into the archive that will be run as an AWS Lambda function. To do this, run:
 
-```
+`
 ./build.sh <config file name>
-```
+`
 
-where ```<config file name>``` is the file you just created. This will instll the required modules into the `/lib` folder if they aren't there, and then create a Zip Archive which is used to deploy the Lambda function.
+where `<config file name>` is the file you just created. This will instll the required modules into the `/lib` folder if they aren't there, and then create a Zip Archive which is used to deploy the Lambda function.
 
 
 ## Deploy to AWS Lambda
 
 Now that the function is built, we need to prepare your account and deploy the Lambda function we've just built. By running:
 
-```deploy.py <config file name>```
+`deploy.py <config file name>`
 
 We will:
 
@@ -89,16 +90,16 @@ We will:
 Once deployed, you can verify the correct operation of this function by:
 
 * Ensuring that the provided CloudTrail is forwarding events to Amazon CloudWatch Logs
-* This CloudWatch Logs Stream is the trigger for the ```EnsureDynamoBackup``` Lambda function
-* Create a simple test DynamoDB table, and observe the CloudWatch Logs output from ```EnsureDynamoBackup``` indicating that it has provisioned the continuous backup. For example:
+* This CloudWatch Logs Stream is the trigger for the `EnsureDynamoBackup` Lambda function
+* Create a simple test DynamoDB table, and observe the CloudWatch Logs output from `EnsureDynamoBackup` indicating that it has provisioned the continuous backup. For example:
 
-```
+`
 aws dynamodb create-table --region eu-west-1 --attribute-definitions AttributeName=MyHashKey,AttributeType=S --key-schema AttributeName=MyHashKey,KeyType=HASH --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 --table-name MyTestTable
-```
+`
 
 This will result in log output such as:
 
-```
+`
 START RequestId: 0afc60f9-7a6b-11e6-a7ee-c571d294a8c0 Version: $LATEST
 Loaded configuration from config.hjson
 Enabled Update Stream for MyDynamoTable
@@ -109,7 +110,7 @@ Processed 1 Events
 END RequestId: 0afc60f9-7a6b-11e6-a7ee-c571d294a8c0
 REPORT RequestId: 0afc60f9-7a6b-11e6-a7ee-c571d294a8c0 Duration: 3786.87 ms Billed Duration: 3800 ms Memory Size: 128 MB Max Memory Used: 51 MB
 
-```
+`
 
 Please note that CloudTrail => CloudWatch Logs propagation can take up to __15 minutes__
 
@@ -119,7 +120,7 @@ Once you have performed the above steps, continuous backup will be configured fo
 
 First, you need to indicate if you want all tables, or only a subset of tables to be provisioned. You do this with a configuration file:
 
-```
+`
 {
   "provisionAll": (true|false),
   "tableNames": [
@@ -129,11 +130,11 @@ First, you need to indicate if you want all tables, or only a subset of tables t
     "TableN"
   ]
 }
-```
+`
 
 This file, like others in the module, uses HJson. By setting `provisionAll` to `true`, the whitelist will be ignored and all Tables in your account will be configured for continuous backup. However, if you do not include the value, or set `false`, then the `tableNames` provided will be used, and only those tables will be configured:
 
-```python provision_tables.py my_table_whitelist.hjson```
+`python provision_tables.py my_table_whitelist.hjson`
 
 You can use the `deprovision_tables.py` script in exactly the same way to tear down the continuous backup configuration.
 
@@ -143,14 +144,29 @@ Please note that default Account limits are for 20 Kinesis Firehose Delivery Str
 
 # Backup Data on S3
 
-Data is backed up automatically via Amazon Kinesis Firehose. The Firehose Delivery Stream that is created as part of provisioning will have the same name as the DynamoDB table you create. The output path of the Firehose Delivery Stream will be the configured bucket and prefix, plus the table name, and then the date in format ```YYYY/MM/DD/HH```. An example backup file for a variety of options would look like:
+Data is backed up automatically via Amazon Kinesis Firehose. The Firehose Delivery Stream that is created as part of provisioning will have the same name as the DynamoDB table you create. The output path of the Firehose Delivery Stream will be the configured bucket and prefix, plus the table name, and then the date in format `YYYY/MM/DD/HH`. An example backup file for a variety of options would look like:
 
-```
+`
 {"Keys":{"MyHashKey":{"S":"abc"}},"NewImage":{"123":{"S":"asdfasdf"},"MyHashKey":{"S":"abc"}},"OldImage":{"123":{"S":"0921438-09"},"MyHashKey":{"S":"abc"}},"SequenceNumber":"19700000000011945700385","SizeBytes":45,"eventName":"MODIFY"}
 {"Keys":{"MyHashKey":{"S":"abc"}},"NewImage":{"123":{"S":"asdfasq223qdf"},"MyHashKey":{"S":"abc"}},"OldImage":{"123":{"S":"asdfasdf"},"MyHashKey":{"S":"abc"}},"SequenceNumber":"19800000000011945703002","SizeBytes":48,"eventName":"MODIFY"}
-```
+`
 
-Every change made to the DynamoDB Item is stored sequentially in Amazon S3, using the Date that the Item was forwarded to Kinesis Firehose from the UpdateStream. You may expect a propagation delay of a few seconds between the DynamoDB Item update/insert/delete time, and the forwarding of the event to Kinesis Firehose. Firehose will then buffer data for the configured ```firehoseDeliveryIntervalSeconds```.
+Every change made to the DynamoDB Item is stored sequentially in Amazon S3, using the Date that the Item was forwarded to Kinesis Firehose from the UpdateStream. You may expect a propagation delay of a few seconds between the DynamoDB Item update/insert/delete time, and the forwarding of the event to Kinesis Firehose. Firehose will then buffer data for the configured `firehoseDeliveryIntervalSeconds`.
+
+# Filtering which tables are backed up
+
+By default, all Tables in your account will be configured for backup. If you want to filter this down to a subset, you can supply a `tableNameMatchRegex` which will check the name of the Table created in DynamoDB against the supplied regular expression. If it matches then the Table will get backed up. If you supply an invalid regular expression, or have other issues with the supplied configuration __then the table will be backed up__.
+
+You can also go further by supplying your own code which validates if a Table should be backed up. For instance, you might check a configuration file or database entry, or check other properties such as the number of IOPS. To implement your own function, simply code a new module in `dynamo_continuous_backup.py` that takes a single String argument (the DynamoDB table name) and returns Boolean. Once done, you can register the function by setting it's name as the implementation function [on line 53](src/dynamo_continuous_backup.py#L53):
+
+```
+def my_filter_function(dynamo_table_name):
+	# custom logic implementation to filter tables in/out of backup
+	...
+	return (True|False)
+	
+optin_function = my_filter_function
+```
 
 
 # Performing a Restore
@@ -161,13 +177,13 @@ The first step in performing a restoration operation is to determine which data 
 
 The first thing we'll need is a [SerDe](https://cwiki.apache.org/confluence/display/Hive/SerDe) that allows us to read the complex, nested JSON structure that our DynamoDB Update Stream forwards to Kinesis Firehose. The OpenX JSON Serde is excellent for this - to load it into your cluster, [follow the instructions for building the SerDe](https://github.com/rcongiu/Hive-JSON-Serde), upload the generated JAR to S3, and run:
 
-```
+`
 add jar s3://mybucket/prefix/json-serde-1.3.8-SNAPSHOT-jar-with-dependencies.jar;
-```
+`
 
 We'll now create a Hive Table on top of our backup location, which uses this SerDe to read the JSON and let us query fine grained details. This table will be read-only on our backup data, and you can drop it at any time:
 
-```
+`
 create external table MyTable_<YYYY><MM><DD>_<HH>(
 	Keys map<string,map<string,string>>,
 	NewImage map<string,map<string,string>>,
@@ -177,13 +193,13 @@ create external table MyTable_<YYYY><MM><DD>_<HH>(
 	eventName string)
 ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe'
 location 's3://backup-bucket/backup-prefix/MyTable/<YYYY>/<MM>/<DD>/<HH>';
-```
+`
 
-Please note that with the above, we'd just be looking at a single hour's worth of backup changes. If you'd prefer to look at a whole day, then you'd just remove the ```<HH>``` part of the table creation statement and location.
+Please note that with the above, we'd just be looking at a single hour's worth of backup changes. If you'd prefer to look at a whole day, then you'd just remove the `<HH>` part of the table creation statement and location.
 
 You can then query changes to your table, down to item level, by using the following HQL:
 
-```
+`
 select  OldImage['attribute1']['s'],
         NewImage['attribute1']['s'],
         SequenceNumber,
@@ -192,9 +208,9 @@ select  OldImage['attribute1']['s'],
 from MyTable_<YYYY><MM><DD>_<HH>
 where Keys['MyHashKey']['s'] = <some hash key value of the item>
 order by SequenceNumber desc;
-```
+`
 
-You can add as many different attributes from the item as needed, or use the ```NewImage['attribute1']['s']``` values in a where clause that matches items that indicate the need for restoration.
+You can add as many different attributes from the item as needed, or use the `NewImage['attribute1']['s']` values in a where clause that matches items that indicate the need for restoration.
 
 ## Restoring a DynamoDB Item
 
@@ -208,7 +224,7 @@ This module requires 3 roles in order to deliver data between CloudTrail, CloudW
 
 IAM Role ARN which CloudTrail will use to write to Amazon S3 and CloudWatch Logs. This must be supllied to the API call that is made to connect your CloudTrail to Amazon CloudWatch Logs:
 
-```
+`
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -234,13 +250,13 @@ IAM Role ARN which CloudTrail will use to write to Amazon S3 and CloudWatch Logs
         }
     ]
 }
-```
+`
 
 ## firehoseDeliveryRoleArn
 
 IAM Role ARN that Kinesis Firehose will use to write to S3. This role must have at least permissions to write to Amazon S3, find buckets, and create log events:
 
-```
+`
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -272,13 +288,13 @@ IAM Role ARN that Kinesis Firehose will use to write to S3. This role must have 
     }
   ]
 }
-```
+`
 
 ## lambdaExecRoleArn
 
 IAM Role ARN for which AWS Lambda uses to write to Kinesis Firehose. This role must have rights to use PutRecords on Kinesis Firehose:
 
-```
+`
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -297,7 +313,7 @@ IAM Role ARN for which AWS Lambda uses to write to Kinesis Firehose. This role m
         }
     ]
 }
-```
+`
 
 # License
 

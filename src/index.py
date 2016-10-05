@@ -16,7 +16,7 @@ config = None
 
 def event_handler(event, context):
     # initialise the ddb continuous backup manager
-    backup.init()
+    backup.init(None)
 
     # handle unknown event types
     if event["awslogs"]["data"] == None:
