@@ -219,7 +219,9 @@ This module requires 3 roles in order to deliver data between CloudTrail, CloudW
 
 ##	cloudTrailRoleArn
 
-IAM Role ARN which CloudTrail will use to write to Amazon S3 and CloudWatch Logs. This must be supllied to the API call that is made to connect your CloudTrail to Amazon CloudWatch Logs:
+IAM Role ARN which CloudTrail will use to write to Amazon S3 and CloudWatch Logs. This must be supllied to the API call that is made to connect your CloudTrail to Amazon CloudWatch Logs.
+
+Trust Relationship: `cloudtrail.amazonaws.com`
 
 ```
 {
@@ -251,7 +253,9 @@ IAM Role ARN which CloudTrail will use to write to Amazon S3 and CloudWatch Logs
 
 ## firehoseDeliveryRoleArn
 
-IAM Role ARN that Kinesis Firehose will use to write to S3. This role must have at least permissions to write to Amazon S3, find buckets, and create log events:
+IAM Role ARN that Kinesis Firehose will use to write to S3. This role must have at least permissions to write to Amazon S3, find buckets, and create log events.
+
+Trust Relationship: `firehose.amazonaws.com`
 
 ```
 {
@@ -289,7 +293,9 @@ IAM Role ARN that Kinesis Firehose will use to write to S3. This role must have 
 
 ## lambdaExecRoleArn
 
-IAM Role ARN for which AWS Lambda uses to write to Kinesis Firehose. This role must have rights to use PutRecords on Kinesis Firehose:
+IAM Role ARN for which AWS Lambda uses to write to Kinesis Firehose. This role must have rights to use PutRecords on Kinesis Firehose.
+
+Trust Relationship: `lambda.amazonaws.com`
 
 ```
 {
