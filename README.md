@@ -308,7 +308,13 @@ Trust Relationship: `lambda.amazonaws.com`
                 "firehose:DescribeDeliveryStream",
                 "firehose:ListDeliveryStreams",
                 "firehose:PutRecord",
-                "firehose:PutRecordBatch"
+                "firehose:PutRecordBatch",
+                "dynamodb:DescribeStream",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:ListStreams",
+                "dynamodb:ListTables"
             ],
             "Resource": [
                 "*"
