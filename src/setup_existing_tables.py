@@ -57,7 +57,12 @@ def resolve_table_list(config_file):
         
 def provision_tables(table_list):
     for x in table_list:
-        dynamo_continuous_backup.configure_table(x)
+        try:
+            dynamo_continuous_backup.configure_table(x)
+        except Exception as e:
+            print "Exception while provisioning table %s" % (x)
+            print e
+            print "Proceeding..."
 
 
 def deprovision_tables(table_list):
