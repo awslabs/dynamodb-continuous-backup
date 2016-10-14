@@ -22,6 +22,8 @@ import re
 config = None
 regex_pattern = None
 
+version = "1.0.1"
+
 '''
 Function that checks if a table should be opted into backups based on a regular expression provided
 in the configuration file
@@ -226,14 +228,23 @@ def ensure_lambda_streams_to_firehose():
         function_arn = response["Configuration"]["FunctionArn"]
     else:
         deployment_package = "%s-%s.zip" % (LAMBDA_STREAMS_TO_FIREHOSE, LAMBDA_STREAMS_TO_FIREHOSE_VERSION)
-        print "Deploying %s from s3://%s" % (deployment_package, LAMBDA_STREAMS_TO_FIREHOSE_BUCKET)
+        
+        # resolve the bucket based on region
+        if current_region == 'us-east-1' or current_region == 'us-west-1' or current_region == 'us-west-2':
+            region_suffix = 'us-std'
+        else:
+            region_suffix = current_region
+            
+        deploy_bucket = "%s-%s" % (LAMBDA_STREAMS_TO_FIREHOSE_BUCKET, region_suffix)
+        
+        print "Deploying %s from s3://%s" % (deployment_package, deploy_bucket)
         response = lambda_client.create_function(
             FunctionName=LAMBDA_STREAMS_TO_FIREHOSE,
             Runtime='nodejs',
             Role=config['lambdaExecRoleArn'],
             Handler='index.handler',
             Code={
-                'S3Bucket': LAMBDA_STREAMS_TO_FIREHOSE_BUCKET,
+                'S3Bucket': deploy_bucket,
                 'S3Key': deployment_package
             },
             Description="AWS Lambda Streams to Kinesis Firehose Replicator",
