@@ -67,8 +67,13 @@ def provision_tables(table_list):
 
 def deprovision_tables(table_list):
     for x in table_list:
-        dynamo_continuous_backup.deprovision_table(x)   
-   
+        try:
+            dynamo_continuous_backup.deprovision_table(x)
+        except Exception as e:
+            print "Exception while deprovisioning table %s" % (x)
+            print e
+            print "Proceeding..."
+
    
 def deprovision(table_whitelist):
     init()
