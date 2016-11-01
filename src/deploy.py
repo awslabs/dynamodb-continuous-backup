@@ -10,60 +10,51 @@ import botocore
 import argparse
 import shortuuid
 import hjson
-
-cwl_client = None
-ct_client = None
+ 
+cwe_client = None
 lambda_client = None
 
 LAMBDA_FUNCTION_NAME = 'EnsureDynamoBackup'
-
-def get_log_group_name(for_trail):
-    return "CloudTrail/" + for_trail
+DDB_CREATE_DELETE_RULE_NAME = 'DynamoDBCreateDelete'
 
 
-def setup_cwl(region, use_trail):
+def configure_cwe(region, cwe_role_arn):
     # connect to CloudWatch Logs
-    global cwl_client
-    cwl_client = boto3.client('logs', region_name=region)
+    global cwe_client
+    cwe_client = boto3.client('events', region_name=region)
     
-    log_group_name = get_log_group_name(use_trail)
-    
-    # setup the cloudwatch log group for CloudTrail
-    created = False
+    # determine if there's an existing rule in place
+    rule_query_response = {}
     try:
-        cwl_client.create_log_group(logGroupName=log_group_name)
-        
-        created = True
+        rule_query_response = cwe_client.describe_rule(
+                Name=DDB_CREATE_DELETE_RULE_NAME
+        )
     except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == 'ResourceAlreadyExistsException':
+        code = e.response['Error']['Code']
+        if code == 'ResourceNotFoundException':
             pass
-    
-    response = cwl_client.describe_log_groups(logGroupNamePrefix=log_group_name)
-    
-    cwl_group_arn = response['logGroups'][0]['arn']    
-    
-    if created:
-        print "Created new CloudWatch Log Group %s" % (cwl_group_arn)
+        else:
+            raise e
         
-    return cwl_group_arn
-
-
-def setup_trail(region, use_trail, cwl_group_arn, cw_logs_role_arn):
-    # connect to cloudtrail
-    global ct_client
-    ct_client = boto3.client('cloudtrail', region_name=region)
-
-    # forward the provided CloudTrail to the newly created log group
-    ct_client.update_trail(
-        Name=use_trail,
-        CloudWatchLogsLogGroupArn=cwl_group_arn,
-        CloudWatchLogsRoleArn=cw_logs_role_arn
-    )
-    
-    print "Linked CloudTrail %s to CloudWatch Logs Group %s" % (use_trail, cwl_group_arn)
+    if 'Arn' in rule_query_response:
+        print "Resolved existing DynamoDB CloudWatch Event Subscriber Rule %s" % (rule_query_response['Arn']);
+        
+        return rule_query_response['Arn']
+    else:
+        # create a cloudwatch events rule
+        rule_response = cwe_client.put_rule(
+            Name=DDB_CREATE_DELETE_RULE_NAME,
+            EventPattern='{"detail-type":["AWS API Call via CloudTrail"],"detail":{"eventSource":["dynamodb.amazonaws.com"],"eventName":["DeleteTable","CreateTable"]}}',
+            State='ENABLED',
+            Description='CloudWatch Events Rule to React to DynamoDB Create and DeleteTable events',
+            RoleArn=cwe_role_arn
+        )
+            
+        print "Created new CloudWatch Events Rule %s" % (rule_response["RuleArn"])
+        return rule_response["RuleArn"]
         
 
-def deploy_lambda_function(region, lambda_role_arn, cwl_group_arn, force):
+def deploy_lambda_function(region, lambda_role_arn, cwe_rule_arn, force):
     # connect to lambda
     global lambda_client
     lambda_client = boto3.client('lambda', region_name=region)
@@ -104,7 +95,7 @@ def deploy_lambda_function(region, lambda_role_arn, cwl_group_arn, force):
                 # store the arn with the version number stripped off
                 function_arn = ":".join(function_arn.split(":")[:7])
                 
-                print "Redeployed DynamoDB Ensure Backup Module to %s" % (function_arn)
+                print "Redeployed DynamoDB Ensure Backup Module to %s" % (response['FunctionArn'])
             else:
                 response = lambda_client.get_function(
                                 FunctionName=LAMBDA_FUNCTION_NAME
@@ -115,49 +106,50 @@ def deploy_lambda_function(region, lambda_role_arn, cwl_group_arn, force):
         else:
             raise e
         
-    # add a permission for CW Logs to invoke this function
+    # add a permission for CW Events to invoke this function
     response = lambda_client.add_permission(
         FunctionName=LAMBDA_FUNCTION_NAME,
         StatementId=shortuuid.uuid(),
         Action='lambda:InvokeFunction',
-        Principal='logs.%s.amazonaws.com' % (region),
-        SourceArn=cwl_group_arn
+        Principal='events.amazonaws.com',
+        SourceArn=cwe_rule_arn
     )
     
-    print "Granted permission to execute backup functions to CloudWatch Logging"
+    print "Granted permission to execute Lambda function to CloudWatchEvents"
     
     return function_arn
     
 
-def create_lambda_cwl_subscription(lambda_arn, cw_logs_role_arn, use_trail):
-    # create a log group filter for the subscription that only delivers dynamoDB events
-    log_group_name = get_log_group_name(use_trail);
-
-    print lambda_arn
-    
-    cwl_client.put_subscription_filter(
-        logGroupName=log_group_name,
-        filterName='DynamoDB Events Only',
-        filterPattern='{ $.eventSource = "dynamodb.amazonaws.com" && ($.eventName = "CreateTable" || $.eventName = "DeleteTable") }',
-        destinationArn=lambda_arn
+def create_lambda_cwl_target(lambda_arn):
+    existing_targets = cwe_client.list_targets_by_rule(
+        Rule=DDB_CREATE_DELETE_RULE_NAME
     )
     
-    print "Created Subscription Filter for DynamoDB only events on CloudTrail Log Stream"
+    if 'Targets' not in existing_targets or len(existing_targets['Targets']) == 0:
+        cwe_client.put_targets(
+            Rule=DDB_CREATE_DELETE_RULE_NAME,
+            Targets=[
+                {
+                    'Id': shortuuid.uuid(),
+                    'Arn': lambda_arn
+                }
+            ]
+        )
+        
+        print "Created CloudWatchEvents Target for Rule %s" % (DDB_CREATE_DELETE_RULE_NAME)
+    else:
+        print "Existing CloudWatchEvents Rule has correct Target Function"
 
 
-
-def configure_ct(region, cw_logs_role_arn, lambda_role_arn, use_trail, redeploy_lambda):
-    # setup a CloudWatch Logs Group
-    cwl_group_arn = setup_cwl(region, use_trail)
-    
-    # configure CloudTrail with forwarding the trail to the CWLogGroup
-    setup_trail(region, use_trail, cwl_group_arn, cw_logs_role_arn)
+def configure_ct(region, cwe_role_arn, lambda_role_arn, redeploy_lambda):
+    # setup a CloudWatchEvents Rule
+    cwe_rule_arn = configure_cwe(region, cwe_role_arn)
     
     # deploy the lambda function
-    lambda_arn = deploy_lambda_function(region, lambda_role_arn, cwl_group_arn, redeploy_lambda)
+    lambda_arn = deploy_lambda_function(region, lambda_role_arn, cwe_rule_arn, redeploy_lambda)
     
-    # create a lambda subscription to the cwlogs group with a filter for DDB CreateTable events
-    create_lambda_cwl_subscription(lambda_arn, cw_logs_role_arn, use_trail)
+    # create a target for our CloudWatch Events Rule that points to the Lambda function
+    create_lambda_cwl_target(lambda_arn)
 
 
 
@@ -171,4 +163,4 @@ if __name__ == "__main__":
     config = hjson.load(open(args.config_file, 'r'))
     
     # invoke the cloudtrail configuration module
-    configure_ct(config['region'], config['cloudTrailRoleArn'], config['lambdaExecRoleArn'], config['cloudTrailName'], args.redeploy)
+    configure_ct(config['region'], config['cloudWatchRoleArn'], config['lambdaExecRoleArn'], args.redeploy)

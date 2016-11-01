@@ -5,6 +5,12 @@ usage() {
 	exit -1
 }
 
+# validate that the config file exists
+if [ ! -f $1 ]; then
+	echo "$1 is not a valid file"
+	usage
+fi
+
 # save the configuration file to the config.loc file
 if [ $# -ne 1 ]; then
 	usage
@@ -27,10 +33,12 @@ if [ ! -d lib/shortuuid ]; then
 	pip install shortuuid -t lib
 fi
 
-if [ -f ../$ARCHIVE ]; then
-	rm ../$ARCHIVE
-fi 
+# bin the old zipfile
+if [ -f ../dist/$ARCHIVE ]; then
+	echo "Removed existing Archive from ../dist"
+	rm -Rf ../dist/$ARCHIVE
+fi
 
-zip -r ../dist/$ARCHIVE index.py dynamo_continuous_backup.py config.loc config.hjson lib/
+zip -r ../dist/$ARCHIVE index.py dynamo_continuous_backup.py config.loc $1 lib/
 
 echo "Generated new Lambda Archive ../dist/$ARCHIVE"

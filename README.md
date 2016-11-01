@@ -8,7 +8,7 @@ DynamoDB can be [backed up using Amazon Data Pipeline](http://docs.aws.amazon.co
 
 For some customers, this full backup and restore model works extremely well. Other customers need the ability to recover data at the item level, with a frequency that is much lower than a full periodic backup and restore. For example, they may want to recover changes made to a single item within just a few minutes.
 
-This module gives you the ability to configure continuous, streaming backup of all data in DynamoDB Tables to Amazon S3 via [AWS Lambda Streams to Firehose](https://github.com/awslabs/lambda-streams-to-firehose), which will propagate all changes to a DynamoDB Table to Amazon S3 in as little as 60 seconds. This module completely automates the provisioning process, to ensure that all Tables created in an Account over time are correctly configured for continuous backup. It does this by operating against events from an [Amazon CloudTrail](https://aws.amazon.com/cloudtrail) you provide. `DynamoDB::CreateTable` and `DeleteTable ` events are forwarded to [Amazon CloudWatch Log Streams](http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/WhatIsCloudWatchLogs.html), and then processed by an AWS Lambda function that automates the configuration of continuous backup. This includes:
+This module gives you the ability to configure continuous, streaming backup of all data in DynamoDB Tables to Amazon S3 via [AWS Lambda Streams to Firehose](https://github.com/awslabs/lambda-streams-to-firehose), which will propagate all changes to a DynamoDB Table to Amazon S3 in as little as 60 seconds. This module completely automates the provisioning process, to ensure that all Tables created in an Account over time are correctly configured for continuous backup. It does this by operating the API calls in your Account.  [Amazon CloudWatch Events](http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/WhatIsCloudWatchEvents.html) subscribes to `DynamoDB::CreateTable` and `DeleteTable ` events and then forwards them to an AWS Lambda function that automates the configuration of continuous backup. This includes:
 
 * Configuring [DynamoDB Update Streams](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.html) for the Table that's just been created
 * Creating an [Amazon Kinesis Firehose Delivery Stream](http://docs.aws.amazon.com/firehose/latest/dev/basic-create.html) for the required destination of the backups on Amazon S3
@@ -28,24 +28,19 @@ This solution adds AWS service components to achieve continuous backup of your D
 * Adding an update stream to the DynamoDB table. This costs $.02/100,000 reads after the first 2.5M reads per update stream
 * Adding a Kinesis Firehose Delivery Stream per table. This costs $.035/GB ingested to the delivery stream
 * Backup data storage on S3. This costs the customer ~ $.03/GB
-* CloudTrail forwarding to CloudWatch Logs. This costs $.50/GB but as we only forward CreateTable and DeleteTable events, the cost should be minimal
+* CloudWatch Events. This costs $1.0/million events.
 * AWS Lambda invocations to forward DynamoDB Update Stream data to Kinesis Firehose. This costs $.20/million invocations, after the first million.
 
 We believe that these costs are relatively low, but you should assess the cost implications to running this solution in your account, especially on tables with a very large number of write IOPS.
 
 # Getting Started
 
-## Configure Amazon CloudTrail
-
-Amazon CloudTrail is a service that provides logging of all API activity in an account to Amazon S3. You can configure it to run per-region, or to capture all acctivity on your account globally, and forward to the S3 bucket of your choice. In order to deploy this module, you must [configure Amazon CloudTrail](http://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail.html), and then provide the name of the configured trail in the configuration file.
-
 ## Create the configuration 
 
 To get started with this function, simply clone the project, and then create a configuration file. This module uses [hjson](https://hjson.org) to make the configuration easy to maintain and read over time, and there's an example file in [config.hjson](src/config.hjson). You may need to work with your AWS Administrator to setup some of the IAM Roles with the correct permissions. You will only need one configuration for **all** tables in your account, and the following items must be configured:
 
 * `region` - the AWS Region where you want the function deployed
-* `cloudTrailName` - the name of the CloudTrail to use for API events. This CloudTrail should only include DynamoDB events for the `region` specified
-* `cloudTrailRoleArn` - IAM Role ARN which CloudTrail will use to write to S3 and CloudWatch Logs
+* `cloudWatchRoleArn` - IAM Role ARN which CloudWatch Events will use to invoke your Lambda function
 * `firehoseDeliveryBucket` - The S3 bucket where DynamoDB backup data should be stored
 * `firehoseDeliveryPrefix` - The prefix on S3 where DynamoDB backup data should be stored. The table name will be added automatically to this prefix, as will the date and time of the backup file
 * `firehoseDeliveryRoleArn` - the ARN of the IAM role that Kinesis Firehose will use to write to S3
@@ -78,17 +73,17 @@ Now that the function is built, we need to prepare your account and deploy the L
 
 We will:
 
-* Begin forwarding the provided CloudTrail to Amazon CloudWatch Logs
+* Subscribe CloudWatch Events to DynamoDB CreateTable and DeleteTable API Calls
 * Deploy the Lambda function
-* Subscribe the Lambda function to the CloudWatch Logs Stream for DynamoDB CreateTable and DeleteTable events
-* Enable CloudWatch Logs to invoke the Lambda function
+* Subscribe the Lambda function to the CloudWatch Events Subscription
+* Enable CloudWatch Events to invoke the Lambda function
  
 ## Verify
 
 Once deployed, you can verify the correct operation of this function by:
 
-* Ensuring that the provided CloudTrail is forwarding events to Amazon CloudWatch Logs
-* This CloudWatch Logs Stream is the trigger for the `EnsureDynamoBackup` Lambda function
+* Ensuring that there is a CloudWatch Events Rule for `dynamodb.amazonaws.com` for events `CreateTable` and `DeleteTable`
+* This CloudWatch Events Rule has a target of the `EnsureDynamoBackup` Lambda function
 * Create a simple test DynamoDB table, and observe the CloudWatch Logs output from `EnsureDynamoBackup` indicating that it has provisioned the continuous backup. For example:
 
 ```
@@ -109,7 +104,7 @@ END RequestId: 0afc60f9-7a6b-11e6-a7ee-c571d294a8c0
 REPORT RequestId: 0afc60f9-7a6b-11e6-a7ee-c571d294a8c0 Duration: 3786.87 ms Billed Duration: 3800 ms Memory Size: 128 MB Max Memory Used: 51 MB
 ```
 
-Please note that CloudTrail => CloudWatch Logs propagation can take up to __15 minutes__
+Please note that API Calls => CloudWatch Events => AWS Lambda propagation can take several minutes.
 
 ## Activating continuous backup for existing tables
 
@@ -217,39 +212,13 @@ This module does not provide any direct function for performing an update to an 
 
 This module requires 3 roles in order to deliver data between CloudTrail, CloudWatch and Amazon Kinesis on your behalf. The following role policies are required, and each minimum set of permissions is shown.
 
-##	cloudTrailRoleArn
+##	cloudWatchRoleArn
 
-IAM Role ARN which CloudTrail will use to write to Amazon S3 and CloudWatch Logs. This must be supllied to the API call that is made to connect your CloudTrail to Amazon CloudWatch Logs.
+IAM Role ARN which CloudWatch Events uses to invoke your AWS Lambda Function.
 
 Trust Relationship: `cloudtrail.amazonaws.com`
 
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "AWSCloudTrailCreateLogStream20141101",
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogStream"
-            ],
-            "Resource": [
-                "arn:aws:logs:eu-west-1:887210671223:log-group:CloudTrail/*:log-stream:887210671223_CloudTrail_eu-west-1*"
-            ]
-        },
-        {
-            "Sid": "AWSCloudTrailPutLogEvents20141101",
-            "Effect": "Allow",
-            "Action": [
-                "logs:PutLogEvents"
-            ],
-            "Resource": [
-                "arn:aws:logs:eu-west-1:887210671223:log-group:CloudTrail/*:log-stream:887210671223_CloudTrail_eu-west-1*"
-            ]
-        }
-    ]
-}
-```
+Predefined Policy: `CloudWatchEventsInvocationAccess`
 
 ## firehoseDeliveryRoleArn
 
