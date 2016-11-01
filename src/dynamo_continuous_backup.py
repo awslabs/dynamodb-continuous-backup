@@ -148,7 +148,7 @@ Create a new Firehose Delivery Stream
 '''
 def create_delivery_stream(for_table_name):
     response = firehose_client.create_delivery_stream(
-        DeliveryStreamName=for_table_name,
+        DeliveryStreamName=for_table_name[:64], # first 64 characters of table name - limitation in firehose
         S3DestinationConfiguration={
             'RoleARN': config['firehoseDeliveryRoleArn'],
             'BucketARN': 'arn:aws:s3:::' + config['firehoseDeliveryBucket'],
