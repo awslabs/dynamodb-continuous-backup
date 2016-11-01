@@ -80,6 +80,8 @@ def deprovision(table_whitelist):
     init()
     
     table_list = resolve_table_list(table_whitelist)
+    
+    dynamo_continuous_backup.init(None)
         
     deprovision_tables(table_list)
         
