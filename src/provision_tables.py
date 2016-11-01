@@ -3,6 +3,9 @@
 import sys
 import setup_existing_tables as setup
 
-
 if __name__ == "__main__":
-    setup.provision(sys.argv[1])
+    if len(sys.argv) != 2:
+        print "Usage: provision_tables.py whitelist_configuration.hjson"
+        sys.exit(-1)
+    else:
+        setup.provision(sys.argv[1])
