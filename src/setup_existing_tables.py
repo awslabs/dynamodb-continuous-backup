@@ -37,8 +37,9 @@ def resolve_table_list(config_file):
 
     table_list = []
     if config == None or config == [] or config["provisionAll"] == True:
-        last_table_evaluated = ""
-        while last_table_evaluated != None:
+        last_table_evaluated = str(None)
+        while last_table_evaluated != None or len(table_list) == 0:
+                
             list_table_result = dynamo_client.list_tables(ExclusiveStartTableName=last_table_evaluated)
             
             for x in list_table_result['TableNames']:
