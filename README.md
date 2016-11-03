@@ -283,7 +283,9 @@ Trust Relationship: `lambda.amazonaws.com`
                 "dynamodb:GetRecords",
                 "dynamodb:GetShardIterator",
                 "dynamodb:ListStreams",
-                "dynamodb:ListTables"
+                "dynamodb:ListTables",
+                "s3:Get*",
+                "s3:List*"
             ],
             "Resource": [
                 "*"
