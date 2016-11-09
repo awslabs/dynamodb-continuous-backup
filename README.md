@@ -160,6 +160,45 @@ def my_filter_function(dynamo_table_name):
 optin_function = my_filter_function
 ```
 
+# Prerequisites for setup & running
+
+In order to use this module, you will need to have installed the following:
+
+* Python
+* Boto3
+* HJson
+* ShortUUID
+* aws-cli
+
+Installation of Python & Pip is beyond the scope of this document, but once installed, run:
+
+```
+pip install --upgrade boto3 awscli hjson shortuuid
+```
+
+and on some systems you may need to run with `sudo`, and on Mac may need to add `--ignore-installed six`.
+
+When running provision/deprovision tables, you will need to provide access credentials which provide at least the following AWS service permissions:
+
+```
+"dynamodb:DescribeStream",
+"dynamodb:DescribeTable",
+"dynamodb:ListStreams",
+"dynamodb:ListTables",
+"dynamodb:UpdateTable",
+"firehose:CreateDeliveryStream",
+"firehose:DescribeDeliveryStream",
+"firehose:ListDeliveryStreams",
+"lambda:AddPermission",
+"lambda:CreateEventSourceMapping",
+"lambda:GetEventSourceMapping",
+"lambda:GetFunction",
+"lambda:ListAliases",
+"lambda:ListEventSourceMappings",
+"lambda:ListFunctions",
+"lambda:UpdateEventSourceMapping"
+```
+
 
 # Performing a Restore
 
