@@ -148,7 +148,7 @@ Create a new Firehose Delivery Stream
 '''
 def create_delivery_stream(for_table_name):
     response = firehose_client.create_delivery_stream(
-        DeliveryStreamName=for_table_name[:64],  # first 64 characters of table name - limitation in firehose
+        DeliveryStreamName=get_delivery_stream_name(for_table_name),
         S3DestinationConfiguration={
             'RoleARN': config['firehoseDeliveryRoleArn'],
             'BucketARN': 'arn:aws:s3:::' + config['firehoseDeliveryBucket'],
@@ -167,13 +167,22 @@ def create_delivery_stream(for_table_name):
 
 
 '''
+Kinesis Firehose Delivery Stream Names are limited to 64 characters
+'''
+def get_delivery_stream_name(dynamo_table_name):
+    return dynamo_table_name[:64]
+
+
+'''
 Check that we have a Firehose Delivery Stream of the same name as the provided DynamoDB Table. If not, then create it
 '''
 def ensure_firehose_delivery_stream(dynamo_table_name):
     response = None
 
+    delivery_stream_name = get_delivery_stream_name(dynamo_table_name)
+    
     try:
-        response = firehose_client.describe_delivery_stream(DeliveryStreamName=dynamo_table_name)
+        response = firehose_client.describe_delivery_stream(DeliveryStreamName=delivery_stream_name)
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] == 'ResourceNotFoundException':
             pass
@@ -184,7 +193,7 @@ def ensure_firehose_delivery_stream(dynamo_table_name):
         return delivery_stream_arn
     else:
         # delivery stream doesn't exist, so create it
-        delivery_stream_arn = create_delivery_stream(dynamo_table_name)
+        delivery_stream_arn = create_delivery_stream(delivery_stream_name)
 
     return delivery_stream_arn
 
@@ -265,14 +274,16 @@ Removes a Firehose Delivery Stream, without affecting S3 in any way
 '''
 def delete_fh_stream(for_table_name):
     try:
+        delivery_stream_name = get_delivery_stream_name(for_table_name)
+        
         firehose_client.delete_delivery_stream(
-            DeliveryStreamName=for_table_name[:64]
+            DeliveryStreamName=delivery_stream_name
         )
         
-        print "Deleted Firehose Delivery Stream %s" % (for_table_name)
+        print "Deleted Firehose Delivery Stream %s" % (delivery_stream_name)
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] == 'ResourceNotFoundException':
-            print "No Firehose Delivery Stream %s Found - OK" % (for_table_name)
+            print "No Firehose Delivery Stream %s Found - OK" % (delivery_stream_name)
 
 
 '''
