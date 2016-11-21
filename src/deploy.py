@@ -120,7 +120,7 @@ def deploy_lambda_function(region, lambda_role_arn, cwe_rule_arn, force):
     return function_arn
     
 
-def create_lambda_cwl_target(lambda_arn):
+def create_lambda_cwe_target(lambda_arn):
     existing_targets = cwe_client.list_targets_by_rule(
         Rule=DDB_CREATE_DELETE_RULE_NAME
     )
@@ -141,7 +141,7 @@ def create_lambda_cwl_target(lambda_arn):
         print "Existing CloudWatchEvents Rule has correct Target Function"
 
 
-def configure_ct(region, cwe_role_arn, lambda_role_arn, redeploy_lambda):
+def configure_backup(region, cwe_role_arn, lambda_role_arn, redeploy_lambda):
     # setup a CloudWatchEvents Rule
     cwe_rule_arn = configure_cwe(region, cwe_role_arn)
     
@@ -149,18 +149,27 @@ def configure_ct(region, cwe_role_arn, lambda_role_arn, redeploy_lambda):
     lambda_arn = deploy_lambda_function(region, lambda_role_arn, cwe_rule_arn, redeploy_lambda)
     
     # create a target for our CloudWatch Events Rule that points to the Lambda function
-    create_lambda_cwl_target(lambda_arn)
+    create_lambda_cwe_target(lambda_arn)
 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()    
-    parser.add_argument("--config-file", dest='config_file', action='store', required=True, help="Enter the path to the JSON or HJSON configuration file")
+    parser.add_argument("--config-file", dest='config_file', action='store', required=False, help="Enter the path to the JSON or HJSON configuration file")
+    parser.add_argument("--region", dest='region', action='store', required=False, help="Enter the destination region")
+    parser.add_argument("--cw_role_arn", dest='cw_role_arn', action='store', required=False, help="The CloudWatch Events Role ARN")
+    parser.add_argument("--lambda_role_arn", dest='lambda_role_arn', action='store', required=False, help="The Lambda Execution Role ARN")
     parser.add_argument("--redeploy", dest='redeploy', action='store_true', required=False, help="Redeploy the Lambda function?")    
     args = parser.parse_args()
+        
+    if args.config_file != None:
+        # load the configuration file
+        config = hjson.load(open(args.config_file, 'r'))
     
-    # load the configuration file
-    config = hjson.load(open(args.config_file, 'r'))
-    
-    # invoke the cloudtrail configuration module
-    configure_ct(config['region'], config['cloudWatchRoleArn'], config['lambdaExecRoleArn'], args.redeploy)
+        configure_backup(config['region'], config['cloudWatchRoleArn'], config['lambdaExecRoleArn'], args.redeploy)
+    else:
+        # no configuration file provided so we need region, CW Role and Lambda Exec role args
+        if args.region == None or args.cw_role_arn == None or args.lambda_role_arn == None:
+            parser.print_help()
+        else:
+            configure_backup(args.region, args.cw_role_arn, args.lambda_role_arn, args.redeploy)

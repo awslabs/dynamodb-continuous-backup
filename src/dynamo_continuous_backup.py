@@ -7,17 +7,19 @@ with the DynamoDB UpateStream as the trigger, and that a Kinesis Firehose Delive
 data archive to S3 
 '''
 
+import os
+import re
 import sys
+import time
+
+import boto3
+import botocore
+import hjson
+
 
 # add the lib directory to the path
 sys.path.append('lib')
 
-import os
-import boto3
-import botocore
-import time
-import hjson
-import re
 
 config = None
 regex_pattern = None
@@ -33,7 +35,7 @@ def table_regex_optin(dynamo_table_name):
         if "tableNameMatchRegex" in config:
             global regex_pattern
             if regex_pattern == None:
-                regex_pattern = re.compile(config['tableNameMatchRegex'])
+                regex_pattern = re.compile(get_config_value('tableNameMatchRegex'))
                 
             # check the regular expression match
             if regex_pattern.match(dynamo_table_name):
@@ -57,18 +59,31 @@ optin_function = table_regex_optin
 # constants - don't change these!
 REGION_KEY = 'AWS_REGION'
 LAMBDA_STREAMS_TO_FIREHOSE = "LambdaStreamToFirehose"
-LAMBDA_STREAMS_TO_FIREHOSE_VERSION = "1.3.5"
+LAMBDA_STREAMS_TO_FIREHOSE_VERSION = "1.4.1"
 LAMBDA_STREAMS_TO_FIREHOSE_BUCKET = "aws-lambda-streams-to-firehose"
+CONF_LOC = 'config.loc'
 dynamo_client = None
 dynamo_resource = None
 current_region = None
 firehose_client = None
 lambda_client = None
     
+
+'''
+Configuration accessor. Rule is to access the provided configuration first, and then fall back to Environment Variables
+'''
+def get_config_value(key):
+    if config != None and key in config:
+        return config[key]
+    elif key in os.environ:
+        return os.environ[key]
+    else:
+        raise Exception("Unable to establish location of Config. %s not found" % (key))
+
+
 '''
 Initialise the module with the provided or default configuration
-'''
-
+'''    
 def init(config_override):
     global config
     global current_region
@@ -77,11 +92,19 @@ def init(config_override):
     global firehose_client
     global lambda_client
     
+    config_file_name = None
+    
     if config == None:
         # read the configuration file name from the config.loc file
         if config_override == None:
-            config_file_name = open('config.loc', 'r').read()
+            if os.path.isfile(CONF_LOC):                
+                config_file_name = open(CONF_LOC, 'r').read()
+                print "Using compiled configuration %s" % (config_file_name)
+            else:
+                # there's no configuration override, and no config pointer file, so we'll use environment variables for config only
+                print "No Configuration File supplied. Using Environment Variables"
         else:
+            print "Using Config Override %s" % (config_override)
             config_file_name = config_override
             
         config = hjson.load(open(config_file_name, 'r'))
@@ -150,12 +173,12 @@ def create_delivery_stream(for_table_name):
     response = firehose_client.create_delivery_stream(
         DeliveryStreamName=get_delivery_stream_name(for_table_name),
         S3DestinationConfiguration={
-            'RoleARN': config['firehoseDeliveryRoleArn'],
-            'BucketARN': 'arn:aws:s3:::' + config['firehoseDeliveryBucket'],
-            'Prefix': "%s/%s/" % (config['firehoseDeliveryPrefix'], for_table_name),
+            'RoleARN': get_config_value('firehoseDeliveryRoleArn'),
+            'BucketARN': 'arn:aws:s3:::' + get_config_value('firehoseDeliveryBucket'),
+            'Prefix': "%s/%s/" % (get_config_value('firehoseDeliveryPrefix'), for_table_name),
             'BufferingHints': {
-                'SizeInMBs': config['firehoseDeliverySizeMB'],
-                'IntervalInSeconds': config['firehoseDeliveryIntervalSeconds']
+                'SizeInMBs': get_config_value('firehoseDeliverySizeMB'),
+                'IntervalInSeconds': get_config_value('firehoseDeliveryIntervalSeconds')
             },
             'CompressionFormat': 'GZIP'
         }
@@ -211,7 +234,7 @@ def ensure_update_stream_event_source(dynamo_stream_arn):
             EventSourceArn=dynamo_stream_arn,
             FunctionName=function_arn,
             Enabled=True,
-            BatchSize=config['streamsMaxRecordsBatch'],
+            BatchSize=get_config_value('streamsMaxRecordsBatch'),
             StartingPosition='TRIM_HORIZON'
         )
     except botocore.exceptions.ClientError as e:
@@ -250,14 +273,14 @@ def ensure_lambda_streams_to_firehose():
         response = lambda_client.create_function(
             FunctionName=LAMBDA_STREAMS_TO_FIREHOSE,
             Runtime='nodejs',
-            Role=config['lambdaExecRoleArn'],
+            Role=get_config_value('lambdaExecRoleArn'),
             Handler='index.handler',
             Code={
                 'S3Bucket': deploy_bucket,
                 'S3Key': deployment_package
             },
             Description="AWS Lambda Streams to Kinesis Firehose Replicator",
-            Timeout=60,
+            Timeout=300,
             MemorySize=128,
             Publish=True
         )
