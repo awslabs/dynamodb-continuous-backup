@@ -10,6 +10,7 @@ import botocore
 import argparse
 import shortuuid
 import hjson
+import json
  
 cwe_client = None
 lambda_client = None
@@ -106,16 +107,33 @@ def deploy_lambda_function(region, lambda_role_arn, cwe_rule_arn, force):
         else:
             raise e
         
-    # add a permission for CW Events to invoke this function
-    response = lambda_client.add_permission(
-        FunctionName=LAMBDA_FUNCTION_NAME,
-        StatementId=shortuuid.uuid(),
-        Action='lambda:InvokeFunction',
-        Principal='events.amazonaws.com',
-        SourceArn=cwe_rule_arn
-    )
+    # query for a permission being granted to the function
+    response_doc = json.loads(lambda_client.get_policy(FunctionName=LAMBDA_FUNCTION_NAME)['Policy'])
     
-    print "Granted permission to execute Lambda function to CloudWatchEvents"
+    events_grant_ok = False
+    if 'Statement' in response_doc:
+        # spin through and determine if an Allow grant has been made to CW Events to InvokeFunction
+        for x in response_doc['Statement']:
+            if 'Action' in x and x['Action'] == 'lambda:InvokeFunction' and x['Effect'] == 'Allow' and x['Principal']['Service'] == 'events.amazonaws.com':
+                events_grant_ok = True
+                break;
+    else:
+        print "Received an invalid policy document from AWS Lambda"
+        print response_doc
+                    
+    if events_grant_ok:
+        print "Permission to execute Lambda function already granted to CloudWatch Events"
+    else:
+        # add a permission for CW Events to invoke this function
+        response = lambda_client.add_permission(
+            FunctionName=LAMBDA_FUNCTION_NAME,
+            StatementId=shortuuid.uuid(),
+            Action='lambda:InvokeFunction',
+            Principal='events.amazonaws.com',
+            SourceArn=cwe_rule_arn
+        )
+        
+        print "Granted permission to execute Lambda function to CloudWatch Events"
     
     return function_arn
     
