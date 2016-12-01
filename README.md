@@ -255,7 +255,7 @@ This module requires 3 roles in order to deliver data between CloudTrail, CloudW
 
 IAM Role ARN which CloudWatch Events uses to invoke your AWS Lambda Function.
 
-Trust Relationship: `cloudtrail.amazonaws.com`
+Trust Relationship: `events.amazonaws.com`
 
 Predefined Policy: `CloudWatchEventsInvocationAccess`
 
