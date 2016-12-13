@@ -60,7 +60,7 @@ def deploy_lambda_function(region, lambda_role_arn, cwe_rule_arn, force):
     global lambda_client
     lambda_client = boto3.client('lambda', region_name=region)
     
-    deployment_zip = open('../dist/dynamodb_continuous_backup.zip', 'rb')
+    deployment_zip = open('../dist/dynamodb_continuous_backup-1.1.zip', 'rb')
     deployment_contents = deployment_zip.read()
     deployment_zip.close()
     
