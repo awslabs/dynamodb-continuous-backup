@@ -47,7 +47,7 @@ def resolve_table_list(config_file):
             if "LastEvaluatedTableName" in list_table_result:
                 last_table_evaluated = list_table_result['LastEvaluatedTableName']
             else:
-                last_table_evaluated = str(None)
+                break
                 
     else:
         table_list = config["tableNames"]
