@@ -323,6 +323,11 @@ Trust Relationship: `lambda.amazonaws.com`
                 "dynamodb:GetShardIterator",
                 "dynamodb:ListStreams",
                 "dynamodb:ListTables",
+                "logs:CreateLogGroup",
+	            "logs:CreateLogStream",
+	            "logs:PutLogEvents",
+	            "lambda:CreateFunction",
+	            "iam:passrole"
                 "s3:Get*",
                 "s3:List*"
             ],
