@@ -327,6 +327,8 @@ Trust Relationship: `lambda.amazonaws.com`
 	            "logs:CreateLogStream",
 	            "logs:PutLogEvents",
 	            "lambda:CreateFunction",
+                "lambda:CreateEventSourceMapping",
+	            "lambda:ListEventSourceMappings",
 	            "iam:passrole"
                 "s3:Get*",
                 "s3:List*"
