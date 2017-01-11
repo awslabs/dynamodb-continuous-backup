@@ -24,7 +24,7 @@ sys.path.append('lib')
 config = None
 regex_pattern = None
 
-version = "1.0.1"
+version = "1.0.2"
 
 '''
 Function that checks if a table should be opted into backups based on a regular expression provided
@@ -59,7 +59,7 @@ optin_function = table_regex_optin
 # constants - don't change these!
 REGION_KEY = 'AWS_REGION'
 LAMBDA_STREAMS_TO_FIREHOSE = "LambdaStreamToFirehose"
-LAMBDA_STREAMS_TO_FIREHOSE_VERSION = "1.4.1"
+LAMBDA_STREAMS_TO_FIREHOSE_VERSION = "1.4.2"
 LAMBDA_STREAMS_TO_FIREHOSE_BUCKET = "aws-lambda-streams-to-firehose"
 CONF_LOC = 'config.loc'
 dynamo_client = None
@@ -272,7 +272,7 @@ def ensure_lambda_streams_to_firehose():
         print "Deploying %s from s3://%s" % (deployment_package, deploy_bucket)
         response = lambda_client.create_function(
             FunctionName=LAMBDA_STREAMS_TO_FIREHOSE,
-            Runtime='nodejs',
+            Runtime='nodejs4.3',
             Role=get_config_value('lambdaExecRoleArn'),
             Handler='index.handler',
             Code={
