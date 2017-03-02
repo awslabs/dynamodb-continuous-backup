@@ -59,7 +59,7 @@ optin_function = table_regex_optin
 # constants - don't change these!
 REGION_KEY = 'AWS_REGION'
 LAMBDA_STREAMS_TO_FIREHOSE = "LambdaStreamToFirehose"
-LAMBDA_STREAMS_TO_FIREHOSE_VERSION = "1.4.3"
+LAMBDA_STREAMS_TO_FIREHOSE_VERSION = "1.4.4"
 LAMBDA_STREAMS_TO_FIREHOSE_BUCKET = "aws-lambda-streams-to-firehose"
 CONF_LOC = 'config.loc'
 dynamo_client = None
