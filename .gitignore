@@ -1,5 +1,5 @@
 
-dist/dynamodb_continuous_backup.zip
+dist/dynamodb_continuous_backup*.zip
 
 .project
 
