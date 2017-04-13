@@ -14,7 +14,7 @@ import json
  
 cwe_client = None
 lambda_client = None
-
+version = '1.2'
 LAMBDA_FUNCTION_NAME = 'EnsureDynamoBackup'
 DDB_CREATE_DELETE_RULE_NAME = 'DynamoDBCreateDelete'
 
@@ -60,7 +60,7 @@ def deploy_lambda_function(region, lambda_role_arn, cwe_rule_arn, force):
     global lambda_client
     lambda_client = boto3.client('lambda', region_name=region)
     
-    deployment_zip = open('../dist/dynamodb_continuous_backup-1.1.zip', 'rb')
+    deployment_zip = open('../dist/dynamodb_continuous_backup-%s.zip' % (version), 'rb')
     deployment_contents = deployment_zip.read()
     deployment_zip.close()
     

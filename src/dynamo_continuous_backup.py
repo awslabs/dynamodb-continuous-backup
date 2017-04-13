@@ -170,23 +170,28 @@ def ensure_stream(table_name):
 Create a new Firehose Delivery Stream
 '''
 def create_delivery_stream(for_table_name):
-    response = firehose_client.create_delivery_stream(
-        DeliveryStreamName=get_delivery_stream_name(for_table_name),
-        S3DestinationConfiguration={
-            'RoleARN': get_config_value('firehoseDeliveryRoleArn'),
-            'BucketARN': 'arn:aws:s3:::' + get_config_value('firehoseDeliveryBucket'),
-            'Prefix': "%s/%s/" % (get_config_value('firehoseDeliveryPrefix'), for_table_name),
-            'BufferingHints': {
-                'SizeInMBs': get_config_value('firehoseDeliverySizeMB'),
-                'IntervalInSeconds': get_config_value('firehoseDeliveryIntervalSeconds')
-            },
-            'CompressionFormat': 'GZIP'
-        }
-    )
-
-    print "Created new Firehose Delivery Stream %s" % (response["DeliveryStreamARN"])
-
-    return response["DeliveryStreamARN"]
+    try:
+        response = firehose_client.create_delivery_stream(
+            DeliveryStreamName=get_delivery_stream_name(for_table_name),
+            S3DestinationConfiguration={
+                'RoleARN': get_config_value('firehoseDeliveryRoleArn'),
+                'BucketARN': 'arn:aws:s3:::' + get_config_value('firehoseDeliveryBucket'),
+                'Prefix': "%s/%s/" % (get_config_value('firehoseDeliveryPrefix'), for_table_name),
+                'BufferingHints': {
+                    'SizeInMBs': get_config_value('firehoseDeliverySizeMB'),
+                    'IntervalInSeconds': get_config_value('firehoseDeliveryIntervalSeconds')
+                },
+                'CompressionFormat': 'GZIP'
+            }
+        )
+    
+        print "Created new Firehose Delivery Stream %s" % (response["DeliveryStreamARN"])
+    
+        return response["DeliveryStreamARN"]
+    except botocore.exceptions.ClientError as e:
+        print e
+        raise e
+        
 
 
 '''
@@ -204,21 +209,38 @@ def ensure_firehose_delivery_stream(dynamo_table_name):
 
     delivery_stream_name = get_delivery_stream_name(dynamo_table_name)
     
-    try:
-        response = firehose_client.describe_delivery_stream(DeliveryStreamName=delivery_stream_name)
-    except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == 'ResourceNotFoundException':
-            pass
-
-    if response and response["DeliveryStreamDescription"]["DeliveryStreamARN"]:
-        delivery_stream_arn = response["DeliveryStreamDescription"]["DeliveryStreamARN"]
-
-        return delivery_stream_arn
+    ok = False
+    tries = 0
+    try_count = 100
+    while not ok and tries < try_count:
+        try:
+            response = firehose_client.describe_delivery_stream(DeliveryStreamName=delivery_stream_name)
+            ok = True
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                ok = True
+                break
+            if e.response['Error']['Code'] == 'LimitExceededException' or e.response['Error']['Code'] == 'ThrottlingException':
+                # exponential backoff with base of 100 ms up to 3 seconds
+                interval = max(.1 * pow(2, try_count), 3)
+                print "Limit Exceeded: Backing off for %s seconds" % (interval)
+                time.sleep(interval)
+                tries += 1
+            else:
+                raise e
+    
+    if not ok:
+        raise Exception("Unable to resolve Firehose Delivery Stream presence in 100 attempts. Aborting")
     else:
-        # delivery stream doesn't exist, so create it
-        delivery_stream_arn = create_delivery_stream(delivery_stream_name)
-
-    return delivery_stream_arn
+        if response and response["DeliveryStreamDescription"]["DeliveryStreamARN"]:
+            delivery_stream_arn = response["DeliveryStreamDescription"]["DeliveryStreamARN"]
+    
+            return delivery_stream_arn
+        else:
+            # delivery stream doesn't exist, so create it
+            delivery_stream_arn = create_delivery_stream(delivery_stream_name)
+    
+        return delivery_stream_arn
 
 
 '''
