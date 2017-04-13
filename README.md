@@ -314,6 +314,7 @@ Trust Relationship: `lambda.amazonaws.com`
             "Sid": "Stmt1444729748000",
             "Effect": "Allow",
             "Action": [
+                "firehose:CreateDeliveryStream",
                 "firehose:DescribeDeliveryStream",
                 "firehose:ListDeliveryStreams",
                 "firehose:PutRecord",
@@ -324,13 +325,14 @@ Trust Relationship: `lambda.amazonaws.com`
                 "dynamodb:GetShardIterator",
                 "dynamodb:ListStreams",
                 "dynamodb:ListTables",
+                "dynamodb:UpdateTable",
                 "logs:CreateLogGroup",
 	            "logs:CreateLogStream",
 	            "logs:PutLogEvents",
 	            "lambda:CreateFunction",
                 "lambda:CreateEventSourceMapping",
 	            "lambda:ListEventSourceMappings",
-	            "iam:passrole"
+	            "iam:passrole",
                 "s3:Get*",
                 "s3:List*"
             ],

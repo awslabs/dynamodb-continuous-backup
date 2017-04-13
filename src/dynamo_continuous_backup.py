@@ -123,7 +123,7 @@ def init(config_override):
     # connect to the required services
     if dynamo_client == None:
         dynamo_client = boto3.client('dynamodb', region_name=current_region)
-        dynamo_resource = boto3.resource('dynamodb')
+        dynamo_resource = boto3.resource('dynamodb', region_name=current_region)
         firehose_client = boto3.client('firehose', region_name=current_region)
         lambda_client = boto3.client('lambda', region_name=current_region)
         
