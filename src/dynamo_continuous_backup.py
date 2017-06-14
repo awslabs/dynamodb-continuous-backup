@@ -59,8 +59,9 @@ optin_function = table_regex_optin
 # constants - don't change these!
 REGION_KEY = 'AWS_REGION'
 LAMBDA_STREAMS_TO_FIREHOSE = "LambdaStreamToFirehose"
-LAMBDA_STREAMS_TO_FIREHOSE_VERSION = "1.4.4"
-LAMBDA_STREAMS_TO_FIREHOSE_BUCKET = "aws-lambda-streams-to-firehose"
+LAMBDA_STREAMS_TO_FIREHOSE_VERSION = "1.4.5"
+LAMBDA_STREAMS_TO_FIREHOSE_BUCKET = "awslabs-code"
+LAMBDA_STREAMS_TO_FIREHOSE_PREFIX = "LambdaStreamToFirehose"
 CONF_LOC = 'config.loc'
 dynamo_client = None
 dynamo_resource = None
@@ -281,7 +282,7 @@ def ensure_lambda_streams_to_firehose():
     if response and response["Configuration"]["FunctionArn"]:
         function_arn = response["Configuration"]["FunctionArn"]
     else:
-        deployment_package = "%s-%s.zip" % (LAMBDA_STREAMS_TO_FIREHOSE, LAMBDA_STREAMS_TO_FIREHOSE_VERSION)
+        deployment_package = "%s/%s-%s.zip" % (LAMBDA_STREAMS_TO_FIREHOSE_PREFIX, LAMBDA_STREAMS_TO_FIREHOSE, LAMBDA_STREAMS_TO_FIREHOSE_VERSION)
         
         # resolve the bucket based on region
         if current_region == 'us-east-1':

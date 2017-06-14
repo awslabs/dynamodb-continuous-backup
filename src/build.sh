@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ver=1.2
+ver=1.3
 
 # validate that the config file exists
 if [ ! -f $1 ]; then
