@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ver=1.3
+ver=1.4
 
 # Fail on any error:
 set -e
