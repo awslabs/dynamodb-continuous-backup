@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 
 import sys
+
+# add the lib directory to the path
+sys.path.append('lib')
+
 import setup_existing_tables as setup
+import argparse
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print "Usage: provision_tables.py whitelist_configuration.hjson"
-        sys.exit(-1)
-    else:
-        setup.provision(sys.argv[1])
+        parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument('whitelist_configuration', help='whitelist_configuration.hjson', required=True)
+        args = parser.parse_args()
+
+        setup.provision(args.whitelist_configuration)

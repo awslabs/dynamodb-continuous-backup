@@ -2,6 +2,9 @@
 
 ver=1.3
 
+# Fail on any error:
+set -e
+
 # validate that the config file exists
 if [ ! -f $1 ]; then
 	echo "$1 is not a valid file"
@@ -15,8 +18,8 @@ else
 	echo $1 | tr -d '\n' > config.loc
 fi
 
-if [ ! -d dist ]; then
-	mkdir dist
+if [ ! -d ../dist ]; then
+	mkdir ../dist
 fi
 
 ARCHIVE=dynamodb_continuous_backup-$ver.zip

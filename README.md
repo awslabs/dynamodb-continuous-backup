@@ -35,7 +35,7 @@ We believe that these costs are relatively low, but you should assess the cost i
 
 # Getting Started
 
-## Create the configuration 
+## Create the configuration
 
 To get started with this function, simply clone the project, and then create a configuration file. This module uses [hjson](https://hjson.org) to make the configuration easy to maintain and read over time, and there's an example file in [config.hjson](src/config.hjson). You may need to work with your AWS Administrator to setup some of the IAM Roles with the correct permissions. You will only need one configuration for **all** tables in your account, and the following items must be configured:
 
@@ -60,16 +60,22 @@ In order to deploy this function into your AWS Account, you must first build the
 
 We now need to build the Lambda function so we can deploy it to your account. This means we need to add the configuration file into the archive that will be run as an AWS Lambda function. To do this, run:
 
-`./build.sh <config file name>`
+```
+cd src
+./build.sh <config file name>
+```
 
-where `<config file name>` is the file you just created. This will instll the required modules into the `/lib` folder if they aren't there, and then create a Zip Archive which is used to deploy the Lambda function.
+where `<config file name>` is the file you just created, ideally in the same directory as src. This will install the required modules into the `/lib` folder if they aren't there, and then create a Zip Archive which is used to deploy the Lambda function.
 
 
 ## Deploy to AWS Lambda
 
 Now that the function is built, we need to prepare your account and deploy the Lambda function we've just built. By running:
 
-`deploy.py <config file name>`
+```
+cd src
+deploy.py <config file name>
+```
 
 We will:
 
@@ -77,7 +83,7 @@ We will:
 * Deploy the Lambda function
 * Subscribe the Lambda function to the CloudWatch Events Subscription
 * Enable CloudWatch Events to invoke the Lambda function
- 
+
 ## Verify
 
 Once deployed, you can verify the correct operation of this function by:
@@ -108,7 +114,7 @@ Please note that API Calls => CloudWatch Events => AWS Lambda propagation can ta
 
 ## Activating continuous backup for existing tables
 
-Once you have performed the above steps, continuous backup will be configured for all new Tables created in DynamoDB. If you would like to also provision continuous backup for the existing tables in your account, you can use the `provision_tables.py` script. 
+Once you have performed the above steps, continuous backup will be configured for all new Tables created in DynamoDB. If you would like to also provision continuous backup for the existing tables in your account, you can use the `provision_tables.py` script.
 
 First, you need to indicate if you want all tables, or only a subset of tables to be provisioned. You do this with a configuration file:
 
@@ -156,7 +162,7 @@ def my_filter_function(dynamo_table_name):
 	# custom logic implementation to filter tables in/out of backup
 	...
 	return (True|False)
-	
+
 optin_function = my_filter_function
 ```
 
@@ -346,7 +352,7 @@ Trust Relationship: `lambda.amazonaws.com`
 
 # License
 
-Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 Licensed under the Amazon Software License (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
 
