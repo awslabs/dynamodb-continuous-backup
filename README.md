@@ -199,6 +199,7 @@ When running provision/deprovision tables, you will need to provide access crede
 "lambda:CreateEventSourceMapping",
 "lambda:GetEventSourceMapping",
 "lambda:GetFunction",
+"lambda:GetPolicy",
 "lambda:ListAliases",
 "lambda:ListEventSourceMappings",
 "lambda:ListFunctions",

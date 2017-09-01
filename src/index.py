@@ -10,8 +10,15 @@ sys.path.append('lib')
 import dynamo_continuous_backup as backup
 
 config = None
+debug = True
 
 def event_handler(event, context):
+    if 'detail' in event and 'errorCode' in event['detail']:
+        # anything that comes in with errors is ignored
+        if debug == True:
+            print "Supressing errored API Call - detail: %s:%s" % (event['detail']['errorCode'],event['detail']['errorMessage'])
+        return
+    
     # initialise the ddb continuous backup manager
     backup.init(None)
     
@@ -20,6 +27,9 @@ def event_handler(event, context):
         print "Unknown input event type"
         print event
     else:
+        if debug == True:
+            print event
+        
         if event['detail']['eventName'] == "CreateTable":
             # resolve the table
             dynamo_table_name = event["detail"]["requestParameters"]["tableName"]
