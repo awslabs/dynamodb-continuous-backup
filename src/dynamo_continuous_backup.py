@@ -283,10 +283,7 @@ def ensure_lambda_streams_to_firehose():
         deployment_package = "%s/%s-%s.zip" % (LAMBDA_STREAMS_TO_FIREHOSE_PREFIX, LAMBDA_STREAMS_TO_FIREHOSE, LAMBDA_STREAMS_TO_FIREHOSE_VERSION)
         
         # resolve the bucket based on region
-        if current_region == 'us-east-1':
-            region_suffix = 'us-std'
-        else:
-            region_suffix = current_region
+        region_suffix = current_region
 
         deploy_bucket = "%s-%s" % (LAMBDA_STREAMS_TO_FIREHOSE_BUCKET, region_suffix)
 

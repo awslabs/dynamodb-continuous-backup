@@ -1,6 +1,3 @@
-
-dist/dynamodb_continuous_backup*.zip
-
 .project
 
 .pydevproject
