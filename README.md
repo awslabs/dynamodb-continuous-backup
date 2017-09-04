@@ -74,7 +74,7 @@ Now that the function is built, we need to prepare your account and deploy the L
 
 ```
 cd src
-deploy.py <config file name>
+deploy.py --config-file <config file name>
 ```
 
 We will:
