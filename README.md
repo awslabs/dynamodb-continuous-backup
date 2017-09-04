@@ -195,6 +195,7 @@ When running provision/deprovision tables, you will need to provide access crede
 "firehose:CreateDeliveryStream",
 "firehose:DescribeDeliveryStream",
 "firehose:ListDeliveryStreams",
+"firehose:DeleteDeliveryStream",
 "lambda:AddPermission",
 "lambda:CreateEventSourceMapping",
 "lambda:GetEventSourceMapping",
@@ -203,7 +204,8 @@ When running provision/deprovision tables, you will need to provide access crede
 "lambda:ListAliases",
 "lambda:ListEventSourceMappings",
 "lambda:ListFunctions",
-"lambda:UpdateEventSourceMapping"
+"lambda:UpdateEventSourceMapping",
+"lambda:DeleteEventSourceMapping"
 ```
 
 
