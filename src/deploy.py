@@ -14,7 +14,7 @@ import json
 
 cwe_client = None
 lambda_client = None
-version = '1.4'
+version = '1.5'
 LAMBDA_FUNCTION_NAME = 'EnsureDynamoBackup'
 DDB_CREATE_DELETE_RULE_NAME = 'DynamoDBCreateDelete'
 

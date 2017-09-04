@@ -288,20 +288,27 @@ def ensure_lambda_streams_to_firehose():
         deploy_bucket = "%s-%s" % (LAMBDA_STREAMS_TO_FIREHOSE_BUCKET, region_suffix)
 
         print "Deploying %s from s3://%s" % (deployment_package, deploy_bucket)
-        response = lambda_client.create_function(
-            FunctionName=LAMBDA_STREAMS_TO_FIREHOSE,
-            Runtime='nodejs4.3',
-            Role=get_config_value('lambdaExecRoleArn'),
-            Handler='index.handler',
-            Code={
-                'S3Bucket': deploy_bucket,
-                'S3Key': deployment_package
-            },
-            Description="AWS Lambda Streams to Kinesis Firehose Replicator",
-            Timeout=300,
-            MemorySize=128,
-            Publish=True
-        )
+        try:
+            response = lambda_client.create_function(
+                FunctionName=LAMBDA_STREAMS_TO_FIREHOSE,
+                Runtime='nodejs4.3',
+                Role=get_config_value('lambdaExecRoleArn'),
+                Handler='index.handler',
+                Code={
+                    'S3Bucket': deploy_bucket,
+                    'S3Key': deployment_package
+                },
+                Description="AWS Lambda Streams to Kinesis Firehose Replicator",
+                Timeout=300,
+                MemorySize=128,
+                Publish=True
+            )
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceConflictException':
+                # the function somehow already exists, though the get previously failed
+                pass
+            else:
+                raise e
 
         if response:
             function_arn = response["FunctionArn"]
