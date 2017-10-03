@@ -58,7 +58,7 @@ optin_function = table_regex_optin
 # constants - don't change these!
 REGION_KEY = 'AWS_REGION'
 LAMBDA_STREAMS_TO_FIREHOSE = "LambdaStreamToFirehose"
-LAMBDA_STREAMS_TO_FIREHOSE_VERSION = "1.4.5"
+LAMBDA_STREAMS_TO_FIREHOSE_VERSION = "1.5.1"
 LAMBDA_STREAMS_TO_FIREHOSE_BUCKET = "awslabs-code"
 LAMBDA_STREAMS_TO_FIREHOSE_PREFIX = "LambdaStreamToFirehose"
 CONF_LOC = 'config.loc'
