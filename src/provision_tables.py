@@ -10,7 +10,7 @@ import argparse
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('whitelist_configuration', help='whitelist_configuration.hjson', required=True)
+        parser.add_argument('whitelist_configuration', help='whitelist_configuration.hjson')
         args = parser.parse_args()
 
         setup.provision(args.whitelist_configuration)
