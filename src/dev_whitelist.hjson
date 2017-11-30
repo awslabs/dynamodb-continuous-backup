@@ -1,0 +1,8 @@
+{
+  "provisionAll": false,
+  "tableNames": [
+    "qa-device-oracle-DeviceOracleProdDB-1TNZMUI2Z603D",
+    "qa-device-oracle-DeviceOracleQaDB-1G0N8320O31MO",
+    "qa-device-oracle-DeviceOracleStageDB-1TZW6YQZV6YBI"
+  ]
+}
