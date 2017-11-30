@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: IAM roles needed to ensure DynamoDB backups
+
+Resources:
+
+  FirehoseDeliveryRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: dynamodb_backup_firehose_delivery_role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - firehose.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+
+  FirehoseDeliveryRolePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: dynamodb_backup_firehose_delivery_policy
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:GetBucketLocation'
+              - 's3:ListBucket'
+              - 's3:ListBucketMultipartUploads'
+              - 's3:AbortMultipartUpload'
+              - 's3:PutObject'
+              - 's3:GetObject'
+            Resource:
+              - 'arn:aws:s3:::device-oracle'
+              - 'arn:aws:s3:::device-oracle/*'
+      Roles:
+        - !Ref FirehoseDeliveryRole
+
+  DynamoDBBackupLambdaExecRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: DynamoDB-Backup-LambdaExecRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+
+  DynamoDBBackupLambdaExecRolePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: DynamoDB-Backup-LambdaExecPolicy
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: 'cloudwatch:*'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'firehose:CreateDeliveryStream'
+              - 'firehose:DescribeDeliveryStream'
+              - 'firehose:ListDeliveryStreams'
+              - 'firehose:PutRecord'
+              - 'firehose:PutRecordBatch'
+              - 'dynamodb:DescribeStream'
+              - 'dynamodb:DescribeTable'
+              - 'dynamodb:GetRecords'
+              - 'dynamodb:GetShardIterator'
+              - 'dynamodb:ListStreams'
+              - 'dynamodb:ListTables'
+              - 'dynamodb:UpdateTable'
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+              - 'lambda:CreateFunction'
+              - 'lambda:CreateEventSourceMapping'
+              - 'lambda:ListEventSourceMappings'
+              - 'iam:passrole'
+              - 's3:Get*'
+              - 's3:List*'
+            Resource: '*'
+      Roles:
+        - !Ref DynamoDBBackupLambdaExecRole
+
+  DynamoDBBackupCloudWatchEventsRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: DynamoDB-Backup-CloudWatchEventsRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+
+  DynamoDBBackupCloudWatchEventsRolePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: DynamoDB-Backup-CloudWatchEventsPolicy
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'cloudtrail:GetTrailStatus'
+              - 'cloudtrail:DescribeTrails'
+              - 'cloudtrail:LookupEvents'
+              - 'cloudtrail:ListTags'
+              - 'cloudtrail:ListPublicKeys'
+              - 'cloudtrail:GetEventSelectors'
+              - 's3:ListAllMyBuckets'
+              - 's3:GetObject'
+              - 's3:GetBucketLocation'
+              - 'kms:ListAliases'
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: '*'
+      Roles:
+        - !Ref DynamoDBBackupCloudWatchEventsRole
