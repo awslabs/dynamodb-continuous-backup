@@ -4,6 +4,8 @@ Amazon DynamoDB is a fast and flexible NoSQL database service for all applicatio
 
 DynamoDB can be [backed up using Amazon Data Pipeline](http://docs.aws.amazon.com/datapipeline/latest/DeveloperGuide/dp-importexport-ddb-part2.html), which creates full point in time copies of DynamoDB tables to AmazonS3. If you want to restore data from a point in time, you simply [reimport that data into a new table](http://docs.aws.amazon.com/datapipeline/latest/DeveloperGuide/dp-importexport-ddb-part1.html).
 
+__PLEASE NOTE THAT THIS UTILITY IS NOW DEPRECATED IN FAVOR OF [DYNAMODB POINT IN TIME RECOVERY](https://aws.amazon.com/dynamodb/pitr)__
+
 ![Import Export Backup](ImportExport.png)
 
 For some customers, this full backup and restore model works extremely well. Other customers need the ability to recover data at the item level, with a frequency that is much lower than a full periodic backup and restore. For example, they may want to recover changes made to a single item within just a few minutes.
